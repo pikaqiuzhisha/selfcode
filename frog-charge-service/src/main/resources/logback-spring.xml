@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+	<!--引入默认的一些设置 -->
+	<include resource="org/springframework/boot/logging/logback/defaults.xml" />
+	<!--web信息 -->
+	<logger name="org.springframework.web" level="info" />
+
+	<!--写入日志到控制台的appender,用默认的,但是要去掉charset,否则windows下tomcat下乱码 -->
+	<appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>
+			<pattern>${CONSOLE_LOG_PATTERN}</pattern>
+		</encoder>
+	</appender>
+
+	<!--定义日志文件的存储地址 勿在 LogBack 的配置中使用相对路径 -->
+	<!--<property name="LOG_PATH"  value="/data/springCloud/eurekaService/logs/" />-->
+
+	<!--写入INFO级别以上日志到文件的appender -->
+	<appender name="INFOFILE"
+		class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<!--日志文件输出的文件名,每天一个文件 -->
+			<!--<FileNamePattern>${LOG_PATH}/info/%d{yyyy-MM-dd}.log</FileNamePattern>-->
+			<FileNamePattern>${user.dir}/logs/info/%d{yyyy-MM-dd}.log</FileNamePattern>
+			<!--日志文件保留天数 -->
+			<maxHistory>30</maxHistory>
+		</rollingPolicy>
+		<encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+			<!--<pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%logger{50}] :%msg%n</pattern>-->
+			<pattern>[%d{yyyy-MM-dd HH:mm:ss.SSS}][%level][%thread][%c{1}]:%msg%n</pattern>
+		</encoder>
+	</appender>
+
+	<!--写入ERROR级别日志到文件的appender -->
+	<appender name="ERRORFILE"
+		class="ch.qos.logback.core.rolling.RollingFileAppender">
+		 <filter class="ch.qos.logback.classic.filter.LevelFilter">
+			<!--过滤 Error-->
+            <level>ERROR</level>
+            <!--匹配到允许-->
+            <onMatch>ACCEPT</onMatch>
+            <!--没有匹配到就禁止-->
+            <onMismatch>DENY</onMismatch>
+		</filter>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<!--日志文件输出的文件名,每天一个文件 -->
+			<!--<FileNamePattern>${LOG_PATH}/error/%d{yyyy-MM-dd}.log</FileNamePattern>-->
+			<FileNamePattern>${user.dir}/logs/error/%d{yyyy-MM-dd}.log</FileNamePattern>
+			<!--日志文件保留天数 -->
+			<maxHistory>30</maxHistory>
+		</rollingPolicy>
+		<encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+			<!--<pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%logger{50}] :%msg%n</pattern>-->
+			<pattern>[%d{yyyy-MM-dd HH:mm:ss.SSS}][%level][%thread][%c{1}]:%msg%n</pattern>
+		</encoder>
+	</appender>
+
+	<!--本地环境:打印控制台和输入文件 -->
+	<springProfile name="local">
+		<root level="info">
+			<appender-ref ref="CONSOLE" />
+			<appender-ref ref="INFOFILE" />
+		    <appender-ref ref="ERRORFILE" />
+		</root>
+	</springProfile>
+	<!--开发环境:打印控制台和输入文件 -->
+	<springProfile name="dev">
+		<root level="info">
+			<appender-ref ref="CONSOLE" />
+			<appender-ref ref="INFOFILE" />
+			<appender-ref ref="ERRORFILE" />
+		</root>
+	</springProfile>
+	<!--测试环境:打印控制台和输入文件 -->
+	<springProfile name="test">
+		<root level="info">
+			<appender-ref ref="CONSOLE" />
+			<appender-ref ref="INFOFILE" />
+		    <appender-ref ref="ERRORFILE" />
+		</root>
+	</springProfile>
+	<!--生产环境:打印控制台和输入文件 -->
+	<springProfile name="pro">
+		<root level="info">
+			<appender-ref ref="CONSOLE" />
+			<appender-ref ref="INFOFILE" />
+		    <appender-ref ref="ERRORFILE" />
+		</root>
+	</springProfile>
+</configuration>

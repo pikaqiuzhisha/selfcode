@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.chargedot.charge.mapper.FaultMapper">
+
+    <!-- 插入 -->
+    <insert id="insert" parameterType="com.chargedot.charge.model.Fault">
+        INSERT INTO
+          dw_device_fault_info(id,device_id,port_id,port,device_type,station_id,fault_type,fault_code,started_at)
+        VALUES
+          (#{id},#{deviceId},#{portId},#{port},#{deviceType},#{stationId},#{faultType},#{faultCode},#{startedAt})
+    </insert>
+
+    <!-- 更新数据 -->
+    <update id="update">
+        UPDATE dw_device_fault_info
+        SET finished_at = #{finishedAt}
+        where id = #{id}
+        AND is_del = 0
+    </update>
+
+</mapper>
