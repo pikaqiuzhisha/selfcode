@@ -286,26 +286,28 @@ public class RequestHandler {
                                 log.info("[CheckInRequest][{}]update order({}), user({}), sequenceNumber({}), port({}), duration({})",
                                         deviceNumber, chargeOrder.getOrderNumber(), userId, chargeOrder.getSequenceNumber(), devicePort.getPortNumber(), chargeOrder.getDuration());
 
-                                int curValue = 0;
-                                DateTimeFormatter df = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-                                log.info("[CheckInRequest][{}]order({}) startedAt={}, finishedAt={}",
-                                        deviceNumber, chargeOrder.getOrderNumber(), chargeOrder.getStartedAt(), chargeOrder.getFinishedAt());
-                                LocalDateTime nowDate = LocalDateTime.now();
-                                LocalDateTime startDate = LocalDateTime.parse(chargeOrder.getStartedAt().substring(0, 19), df);
-                                LocalDateTime finishDate = LocalDateTime.parse(chargeOrder.getFinishedAt().substring(0, 19), df);
+                                if (ConstantConfig.CARD_TYPE_OF_MONTHLY_TIME == chargeCard.getType()) {
+                                    int curValue = 0;
+                                    DateTimeFormatter df = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                                    log.info("[CheckInRequest][{}]order({}) startedAt={}, finishedAt={}",
+                                            deviceNumber, chargeOrder.getOrderNumber(), chargeOrder.getStartedAt(), chargeOrder.getFinishedAt());
+                                    LocalDateTime nowDate = LocalDateTime.now();
+                                    LocalDateTime startDate = LocalDateTime.parse(chargeOrder.getStartedAt().substring(0, 19), df);
+                                    LocalDateTime finishDate = LocalDateTime.parse(chargeOrder.getFinishedAt().substring(0, 19), df);
 
-                                if (startDate.toLocalDate().isBefore(nowDate.toLocalDate()) && finishDate.toLocalDate().isBefore(nowDate.toLocalDate())) {
-                                    curValue = chargeCard.getCurValue();
-                                } else if (startDate.toLocalDate().isBefore(nowDate.toLocalDate()) && !finishDate.toLocalDate().isBefore(nowDate.toLocalDate())) {
-                                    long current = System.currentTimeMillis();
-                                    long zero = current/(1000*3600*24)*(1000*3600*24) - TimeZone.getDefault().getRawOffset();
-                                    curValue = chargeCard.getCurValue() - (int)((finishAt - zero) / 1000) / 60;
-                                } else {
-                                    curValue = chargeCard.getCurValue() - chargeOrder.getDuration() / 60;
+                                    if (startDate.toLocalDate().isBefore(nowDate.toLocalDate()) && finishDate.toLocalDate().isBefore(nowDate.toLocalDate())) {
+                                        curValue = chargeCard.getCurValue();
+                                    } else if (startDate.toLocalDate().isBefore(nowDate.toLocalDate()) && !finishDate.toLocalDate().isBefore(nowDate.toLocalDate())) {
+                                        long current = System.currentTimeMillis();
+                                        long zero = current / (1000 * 3600 * 24) * (1000 * 3600 * 24) - TimeZone.getDefault().getRawOffset();
+                                        curValue = chargeCard.getCurValue() - (int) ((finishAt - zero) / 1000) / 60;
+                                    } else {
+                                        curValue = chargeCard.getCurValue() - chargeOrder.getDuration() / 60;
+                                    }
+
+                                    // 更新充电卡信息
+                                    chargeCard.setCurValue(curValue > 0 ? curValue : 0);
                                 }
-
-                                // 更新充电卡信息
-                                chargeCard.setCurValue(curValue > 0 ? curValue : 0);
                                 chargeCard.setCardStatus(ConstantConfig.CARD_AVAILABLE);
                                 chargeCardMapper.updateCardStatus(chargeCard);
                                 log.info("[CheckInRequest][{}]update chargeCard({}), status({}), curValue({})",
@@ -805,7 +807,7 @@ public class RequestHandler {
                         }
                     }
 
-                    if (userType == ConstantConfig.USER_TYPE_MONTH_COUNT || userType == ConstantConfig.USER_TYPE_MONTH_TIME) {
+                    if (userType == ConstantConfig.USER_TYPE_MONTH_TIME) {
                         int curValue = 0;
                         DateTimeFormatter df = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
                         log.info("[ReportStopChargeRequest][{}]order({}) startedAt={}, finishedAt={}",

@@ -11,6 +11,7 @@
     <modules>
         <module>frog-eureka-service</module>
         <module>frog-charge-service</module>
+        <module>frog-gateway-service</module>
     </modules>
 
     <parent>
