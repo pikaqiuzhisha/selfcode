@@ -1,0 +1,163 @@
+# Eureka Server Configuration
+spring:
+  profiles: local
+  application:
+     name: frog-gateway-service
+
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true              #是否与服务注册于发现组件进行结合,设为true便开启通过服务中心的自动根据 serviceId 创建路由的功能。
+          lowerCaseServiceId: true   #该配置开启后，服务名可以小写
+      routes:
+        - id: frog-loader-service
+          uri: lb://frog-loader-service     #lb:从eureka中获取服务
+          predicates:
+            - Path=/loader/**
+          filters:
+            - StripPrefix=1
+
+logging:
+  level:
+    org.springframework.cloud.gateway: debug
+
+server:
+  port: 18621
+
+# Discovery Server Access config
+eureka:
+  instance:
+    preferIpAddress: true
+  client:
+    instance:
+      preferIpAddress: true
+    registryFetchIntervalSeconds: 5
+    instanceInfoReplicationIntervalSeconds: 5
+    initialInstanceInfoReplicationIntervalSeconds: 5
+    serviceUrl:
+      defaultZone: http://localhost:18761/eureka/
+    fetchRegistry: true
+
+---
+spring:
+  profiles: dev
+  application:
+    name: frog-gateway-service
+
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true              #是否与服务注册于发现组件进行结合,设为true便开启通过服务中心的自动根据 serviceId 创建路由的功能。
+          lowerCaseServiceId: true   #该配置开启后，服务名可以小写
+      routes:
+        - id: frog-loader-service
+          uri: lb://frog-loader-service     #lb:从eureka中获取服务
+          predicates:
+            - Path=/loader/**
+          filters:
+            - StripPrefix=1
+
+logging:
+  level:
+    org.springframework.cloud.gateway: debug
+
+server:
+  port: 18621
+
+# Discovery Server Access config
+eureka:
+  instance:
+    preferIpAddress: true
+  client:
+    instance:
+      preferIpAddress: true
+    registryFetchIntervalSeconds: 5
+    instanceInfoReplicationIntervalSeconds: 5
+    initialInstanceInfoReplicationIntervalSeconds: 5
+    serviceUrl:
+      defaultZone: http://localhost:18761/eureka/
+    fetchRegistry: true
+
+---
+spring:
+  profiles: test
+  application:
+    name: frog-gateway-service
+
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true              #是否与服务注册于发现组件进行结合,设为true便开启通过服务中心的自动根据 serviceId 创建路由的功能。
+          lowerCaseServiceId: true   #该配置开启后，服务名可以小写
+      routes:
+        - id: frog-loader-service
+          uri: lb://frog-loader-service     #lb:从eureka中获取服务
+          predicates:
+            - Path=/loader/**
+          filters:
+            - StripPrefix=1
+
+logging:
+  level:
+    org.springframework.cloud.gateway: debug
+
+server:
+  port: 18621
+
+# Discovery Server Access config
+eureka:
+  instance:
+    preferIpAddress: true
+  client:
+    instance:
+      preferIpAddress: true
+    registryFetchIntervalSeconds: 5
+    instanceInfoReplicationIntervalSeconds: 5
+    initialInstanceInfoReplicationIntervalSeconds: 5
+    serviceUrl:
+      defaultZone: http://172.31.172.142:18761/eureka/
+    fetchRegistry: true
+
+---
+spring:
+  profiles: pro
+  application:
+    name: frog-gateway-service
+
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true              #是否与服务注册于发现组件进行结合,设为true便开启通过服务中心的自动根据 serviceId 创建路由的功能。
+          lowerCaseServiceId: true   #该配置开启后，服务名可以小写
+      routes:
+        - id: frog-loader-service
+          uri: lb://frog-loader-service     #lb:从eureka中获取服务
+          predicates:
+            - Path=/loader/**
+          filters:
+            - StripPrefix=1
+
+logging:
+  level:
+    org.springframework.cloud.gateway: debug
+
+server:
+  port: 18621
+
+# Discovery Server Access config
+eureka:
+  instance:
+    preferIpAddress: true
+  client:
+    instance:
+      preferIpAddress: true
+    registryFetchIntervalSeconds: 5
+    instanceInfoReplicationIntervalSeconds: 5
+    initialInstanceInfoReplicationIntervalSeconds: 5
+    serviceUrl:
+      defaultZone: http://localhost:18761/eureka/
+    fetchRegistry: true
