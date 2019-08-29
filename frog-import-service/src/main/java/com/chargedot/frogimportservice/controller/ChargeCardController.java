@@ -60,15 +60,22 @@ public class ChargeCardController {
                     noRepeatCount++;
                 }
             }
-            //调用批量导入方法
-            isRight = chargeCardService.importChargeCardData(noRepeatCardList);
+
+            //判断唯一卡号集合是否存在数据
+            if(noRepeatCardList.size() > 0){
+                //调用批量导入方法
+                isRight = chargeCardService.importChargeCardData(noRepeatCardList);
+            }else{
+                return new ResponseEntity<CommonResult>(CommonResult.buildErrorResult(1,"send all imported card_numbers are duplicated.",""), HttpStatus.OK);
+            }
+
 
             log.info("结束时间：{}", new Date());
 
             log.debug("重复个数：{}", repeatCount);
             log.debug("repeatCardList：{}", repeatCardList);
             log.debug("不重复个数：{}", noRepeatCount);
-            log.debug("onlyCardList：{}", noRepeatCardList);
+            log.debug("noRepeatCardList：{}", noRepeatCardList);
 
             //判断调用方法是否成功
             if (isRight > 0) {

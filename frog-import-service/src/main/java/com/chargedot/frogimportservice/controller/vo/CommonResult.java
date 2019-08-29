@@ -34,6 +34,12 @@ public class CommonResult {
         this.data = data;
     }
 
+    public CommonResult(Integer ret, String msg, Object data) {
+        this.ret = ret;
+        this.msg = msg;
+        this.data = data;
+    }
+
     public static CommonResult buildSuccessResult(Object data) {
         return new CommonResult(data);
     }
@@ -52,5 +58,7 @@ public class CommonResult {
         return new CommonResult(ret, msg);
     }
 
-
+    public static CommonResult buildErrorResult(Integer ret, String msg,Object data) {
+        return new CommonResult(ret, msg, data);
+    }
 }
