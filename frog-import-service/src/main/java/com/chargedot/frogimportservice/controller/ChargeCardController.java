@@ -28,14 +28,17 @@ public class ChargeCardController {
     @HystrixCommand(fallbackMethod = "defaultSendMessage")
     @RequestMapping(value = "/card_import", method = RequestMethod.POST,produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<CommonResult> importData(@RequestBody String req) {
-        // TODO 输入参数校验
+        //参数校验
+        if(req == null || req.equals("")){
+            return new ResponseEntity<CommonResult>(CommonResult.buildResult(4003), HttpStatus.OK);
+        }
         log.debug("req：{}", req);
         //获取卡号集合数据
         List<ChargeCard> chargeCardList = JSON.parseArray(req, ChargeCard.class);
         //存储重复的卡号
         List<ChargeCard> repeatCardList = new ArrayList<>();
         //存储唯一的卡号
-        List<ChargeCard> onlyCardList = new ArrayList<>();
+        List<ChargeCard> noRepeatCardList = new ArrayList<>();
         log.debug("card条数：{}", chargeCardList.size());
         log.info("开始时间：{}", new Date());
         //定义变量,来判断是否成功
@@ -43,7 +46,7 @@ public class ChargeCardController {
         //标识重复的个数
         int repeatCount = 0;
         //标识唯一的个数
-        int onlyCount = 0;
+        int noRepeatCount = 0;
 
         //判断集合里是否存在数据
         if (chargeCardList.size() > 0) {
@@ -53,19 +56,19 @@ public class ChargeCardController {
                     repeatCardList.add(chargeCard);
                     repeatCount++;
                 } else {
-                    onlyCardList.add(chargeCard);
-                    onlyCount++;
+                    noRepeatCardList.add(chargeCard);
+                    noRepeatCount++;
                 }
             }
             //调用批量导入方法
-            isRight = chargeCardService.importChargeCardData(onlyCardList);
+            isRight = chargeCardService.importChargeCardData(noRepeatCardList);
 
             log.info("结束时间：{}", new Date());
 
             log.debug("重复个数：{}", repeatCount);
             log.debug("repeatCardList：{}", repeatCardList);
-            log.debug("不重复个数：{}", onlyCount);
-            log.debug("onlyCardList：{}", onlyCardList);
+            log.debug("不重复个数：{}", noRepeatCount);
+            log.debug("onlyCardList：{}", noRepeatCardList);
 
             //判断调用方法是否成功
             if (isRight > 0) {
