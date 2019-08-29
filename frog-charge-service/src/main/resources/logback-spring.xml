@@ -21,13 +21,13 @@
 		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
 			<!--日志文件输出的文件名,每天一个文件 -->
 			<!--<FileNamePattern>${LOG_PATH}/info/%d{yyyy-MM-dd}.log</FileNamePattern>-->
-			<FileNamePattern>${user.dir}/logs/info/%d{yyyy-MM-dd}.log</FileNamePattern>
+			<FileNamePattern>logs/info/server-%d{yyyy-MM-dd}.log</FileNamePattern>
 			<!--日志文件保留天数 -->
 			<maxHistory>30</maxHistory>
 		</rollingPolicy>
 		<encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
 			<!--<pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%logger{50}] :%msg%n</pattern>-->
-			<pattern>[%d{yyyy-MM-dd HH:mm:ss.SSS}][%level][%thread][%c{1}]:%msg%n</pattern>
+			<pattern>[%d{yyyy-MM-dd HH:mm:ss.SSS}][%level][%c{1}]:%msg%n</pattern>
 		</encoder>
 	</appender>
 
@@ -45,19 +45,19 @@
 		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
 			<!--日志文件输出的文件名,每天一个文件 -->
 			<!--<FileNamePattern>${LOG_PATH}/error/%d{yyyy-MM-dd}.log</FileNamePattern>-->
-			<FileNamePattern>${user.dir}/logs/error/%d{yyyy-MM-dd}.log</FileNamePattern>
+			<FileNamePattern>logs/error/server-%d{yyyy-MM-dd}.log</FileNamePattern>
 			<!--日志文件保留天数 -->
 			<maxHistory>30</maxHistory>
 		</rollingPolicy>
 		<encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
 			<!--<pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%logger{50}] :%msg%n</pattern>-->
-			<pattern>[%d{yyyy-MM-dd HH:mm:ss.SSS}][%level][%thread][%c{1}]:%msg%n</pattern>
+			<pattern>[%d{yyyy-MM-dd HH:mm:ss.SSS}][%level][%c{1}]:%msg%n</pattern>
 		</encoder>
 	</appender>
 
 	<!--本地环境:打印控制台和输入文件 -->
 	<springProfile name="local">
-		<root level="info">
+		<root level="debug">
 			<appender-ref ref="CONSOLE" />
 			<appender-ref ref="INFOFILE" />
 		    <appender-ref ref="ERRORFILE" />
