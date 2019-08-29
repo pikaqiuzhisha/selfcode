@@ -93,10 +93,10 @@ spring:
           enabled: true              #是否与服务注册于发现组件进行结合,设为true便开启通过服务中心的自动根据 serviceId 创建路由的功能。
           lowerCaseServiceId: true   #该配置开启后，服务名可以小写
       routes:
-        - id: frog-loader-service
-          uri: lb://frog-loader-service     #lb:从eureka中获取服务
+        - id: frog-import-service
+          uri: lb://frog-import-service     #lb:从eureka中获取服务
           predicates:
-            - Path=/loader/**
+            - Path=/import/**
           filters:
             - StripPrefix=1
 
