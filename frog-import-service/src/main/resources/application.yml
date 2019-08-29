@@ -130,7 +130,7 @@ eureka:
     instance-info-replication-interval-seconds: 5
     initial-instance-info-replication-interval-seconds: 5
     serviceUrl:
-      defaultZone: http://172.31.172.141:18761/eureka/
+      defaultZone: http://172.31.172.142:18761/eureka/
     fetch-registry: true
 
 #server config
