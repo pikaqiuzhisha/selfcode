@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.chargedot.frogimportservice.mapper.ChargeCardMapper">
+
+    <!--批量导入卡号信息-->
+    <insert id="importChargeCardData">
+        insert into dw_card (card_number)
+        values
+        <foreach item="chargeCard" index="index" collection="chargeCardList" separator=",">
+            (#{chargeCard.cardNumber})
+        </foreach>
+
+    </insert>
+
+    <!--查询卡号-->
+    <select id="selectChargeCardNumberCount" resultType="int">
+        select count(card_number) from dw_card where card_number = #{cardNumber}
+    </select>
+</mapper>
