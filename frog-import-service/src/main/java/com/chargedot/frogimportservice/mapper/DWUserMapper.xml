@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.chargedot.frogimportservice.mapper.DWUserMapper">
+    <!--批量新增用户信息-->
+    <insert id="importDWUserData">
+        insert into dw_user (phone)
+        values
+        <foreach item="dwUser" index="index" collection="dwUserList" separator=",">
+            (#{dwUser.phone})
+        </foreach>
+    </insert>
+
+    <!--新增用户信息-->
+    <insert id="addDWUserInfo" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        insert into dw_user (phone,type,status,user_src,month_card,enterprise_id)
+        values (#{phone},#{type},#{status},#{userSrc},#{monthCard},#{enterpriseId})
+    </insert>
+
+</mapper>

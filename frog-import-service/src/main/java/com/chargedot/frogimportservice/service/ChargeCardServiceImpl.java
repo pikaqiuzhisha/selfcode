@@ -25,6 +25,12 @@ public class ChargeCardServiceImpl implements ChargeCardService{
     }
 
     @Override
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.DEFAULT)
+    public int addChargeCardInfo(ChargeCard chargeCard) {
+        return chargeCardMapper.addChargeCardInfo(chargeCard);
+    }
+
+    @Override
     public boolean selectChargeCardNumberCount(String cardNumber) {
         return chargeCardMapper.selectChargeCardNumberCount(cardNumber) > 0;
     }

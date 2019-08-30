@@ -5,12 +5,18 @@
 
     <!--批量导入卡号信息-->
     <insert id="importChargeCardData">
-        insert into dw_card (card_number)
+        insert into dw_card (card_number,user_id)
         values
         <foreach item="chargeCard" index="index" collection="chargeCardList" separator=",">
-            (#{chargeCard.cardNumber})
+            (#{chargeCard.cardNumber},#{chargeCard.userId})
         </foreach>
 
+    </insert>
+
+    <!--新增卡号信息-->
+    <insert id="addChargeCardInfo">
+        insert into dw_card (card_number,user_id,enterprise_id,type,begined_at,finished_at)
+        values (#{cardNumber},#{userId},#{enterpriseId},#{type},#{beginedAt},#{finishedAt})
     </insert>
 
     <!--查询卡号-->
