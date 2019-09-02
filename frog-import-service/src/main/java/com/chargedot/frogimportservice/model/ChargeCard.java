@@ -3,8 +3,6 @@ package com.chargedot.frogimportservice.model;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
-import java.util.List;
-
 /**
  * @author Eric Gui
  * @date 2019/4/15
