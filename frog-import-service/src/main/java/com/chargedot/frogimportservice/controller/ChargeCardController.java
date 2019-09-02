@@ -1,9 +1,11 @@
 package com.chargedot.frogimportservice.controller;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.chargedot.frogimportservice.controller.vo.CommonResult;
 import com.chargedot.frogimportservice.model.ChargeCard;
 import com.chargedot.frogimportservice.model.DWUser;
+import com.chargedot.frogimportservice.model.vo.DataParam;
 import com.chargedot.frogimportservice.service.ChargeCardService;
 import com.chargedot.frogimportservice.service.DWUserService;
 import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
@@ -28,19 +30,37 @@ public class ChargeCardController {
     @Autowired
     private ChargeCardService chargeCardService;
 
+    //创建用户管理业务对象
     @Autowired
     private DWUserService dwUserService;
 
     @HystrixCommand(fallbackMethod = "defaultSendMessage")
     @RequestMapping(value = "/card_import", method = RequestMethod.POST,produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public ResponseEntity<CommonResult> importData(@RequestBody String req) {
+    public ResponseEntity<CommonResult> importData(@RequestBody String data) {
+
         //校验参数
-        if(req == null || req.equals("")){
+        if(data == null){
+            return new ResponseEntity<CommonResult>(CommonResult.buildResult(4003), HttpStatus.OK);
+        }
+
+        //把参数转换为JSONObject对象
+        JSONObject jsonObject = JSONObject.parseObject(data);
+        //JSONObject转成JAVA对象
+        DataParam dataParam = JSONObject.toJavaObject(jsonObject,DataParam.class);
+        //获取卡号集合
+        List<ChargeCard> chargeCardList = dataParam.getChargeCardList();
+        //获取公司id
+        int enterpriseId = dataParam.getEnterpriseId();
+        //获取有效期
+        String finishedAt = dataParam.getFinishedAt();
+        //获取类型
+        int type=dataParam.getType();
+
+        //校验参数
+        if(chargeCardList == null || chargeCardList.equals("")){
             return new ResponseEntity<CommonResult>(CommonResult.buildResult(4003), HttpStatus.OK);
         }else{
-            log.debug("req：{}", req);
-            //获取卡号集合数据
-            List<ChargeCard> chargeCardList = JSON.parseArray(req, ChargeCard.class);
+            log.debug("req：{}", chargeCardList);
             //存储重复的卡号
             List<ChargeCard> repeatCardList = new ArrayList<>();
             //存储唯一的卡号
@@ -56,7 +76,7 @@ public class ChargeCardController {
             //标识唯一的个数
             int noRepeatCount = 0;
             //表示卡的类型
-            int type = 0;
+            int userType = 0;
 
             //校验集合里是否存在数据
             if (chargeCardList.size() > 0) {
@@ -69,30 +89,29 @@ public class ChargeCardController {
                         noRepeatCardList.add(chargeCard);
                         noRepeatCount++;
                         //根据卡的类型匹配用户的类型
-                        switch (chargeCard.getType()){
+                        switch (type){
                             case 1:
-                                type = 3;
+                                userType = 3;
                                 break;
                             case 2:
-                                type = 4;
+                                userType = 4;
                                 break;
                             case 3:
-                                type = 5;
+                                userType = 5;
                                 break;
                             default:
-                                type = 1;
+                                userType = 1;
                                 break;
                         }
                         //创建新用户
                         DWUser dwUser = new DWUser();
                         //录入用户信息
                         dwUser.setPhone(chargeCard.getCardNumber());
-                        dwUser.setType(type);
+                        dwUser.setType(userType);
                         dwUser.setStatus(2);
                         dwUser.setUserSrc(3);
                         dwUser.setMonthCard(3);
-                        dwUser.setEnterpriseId(chargeCard.getEnterpriseId());
-                        //dwUser.setEnterpriseId(0);
+                        dwUser.setEnterpriseId(enterpriseId);
                         //调用新增用户方法
                         isCorrect = dwUserService.addDWUserInfo(dwUser);
                         //校验是否调用成功
@@ -100,6 +119,9 @@ public class ChargeCardController {
                             //录入卡信息
                             chargeCard.setUserId(dwUser.getId());
                             chargeCard.setBeginedAt(new SimpleDateFormat("yyyy-MM-dd hh:mm:ss").format(new Date()));
+                            chargeCard.setType(type);
+                            chargeCard.setEnterpriseId(enterpriseId);
+                            chargeCard.setFinishedAt(finishedAt);
                             //调用录入卡号方法
                             isRight = chargeCardService.addChargeCardInfo(chargeCard);
 
