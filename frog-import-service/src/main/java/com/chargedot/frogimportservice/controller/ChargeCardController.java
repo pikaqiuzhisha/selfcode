@@ -47,6 +47,11 @@ public class ChargeCardController {
         JSONObject jsonObject = JSONObject.parseObject(data);
         //JSONObject转成JAVA对象
         DataParam dataParam = JSONObject.toJavaObject(jsonObject,DataParam.class);
+        //校验参数的解析是否正确
+        if(dataParam == null){
+            return new ResponseEntity<CommonResult>(CommonResult.buildResult(4003), HttpStatus.OK);
+        }
+
         //获取卡号集合
         List<ChargeCard> chargeCardList = dataParam.getChargeCardList();
         //获取公司id
