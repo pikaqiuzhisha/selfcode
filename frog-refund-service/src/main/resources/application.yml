@@ -1,0 +1,397 @@
+#spring properties
+spring:
+  profiles: local
+  application:
+    name: frog-refund-service
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/cdot_elec_frog?useUnicode=true&characterEncoding=utf-8
+    username: root
+    password: chargedot
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    initialSize: 5
+    minIdle: 2
+    maxActive: 20
+    timeBetweenEvictionRunsMillis: 60000
+    minEvictableIdleTimeMillis: 300000
+    validationQuery: SELECT 1 FROM DUAL
+    testWhileIdle: true
+    testOnBorrow: false
+    testOnReturn: false
+    logSlowSql: true
+    maxWait: 30000
+  #kafka config
+  kafka:
+    bootstrap-servers: 127.0.0.1:9092
+    consumer:
+      group-id: frogRefundService
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+  #redis config
+  redis:
+    host: 127.0.0.1
+    port: 6379
+
+#eureka config
+eureka:
+  instance:
+    preferIpAddress: true
+  client:
+    filter-only-up-instances: true
+    registry-fetch-interval-seconds: 5
+    instance-info-replication-interval-seconds: 5
+    initial-instance-info-replication-interval-seconds: 5
+    serviceUrl:
+      defaultZone: http://localhost:18761/eureka/
+    fetch-registry: true
+
+#server config
+server:
+  port: 8563
+
+#restTemplate time out config
+rest:
+  connectionRequestTimeout: 35000
+  readTimeout: 35000
+  connectTimeout: 35000
+
+
+#mybatis config
+mybatis:
+  mapper-locations: classpath:com/chargedot/refund/mapper/*.xml
+  type-aliases-package: com.chargedot.refund.model
+
+#logging config
+logging:
+  level:
+    com.chargedot.elecfrogservice.dao.mapper: debug
+
+#hystrix time out config
+hystrix:
+  command:
+    default:
+      execution:
+        isolation:
+          thread:
+            timeoutInMilliseconds: 60000
+
+request:
+  message:
+    queue:
+      capacity: 10000
+    handler:
+      count: 4
+
+charge:
+  rate:
+    default:
+      detail: "{\"3600\":100}"
+      hour: 3600
+      fee: 100
+
+#push url config
+push:
+  user:
+    url: https://minipro.elefrog.com:2443/
+
+---
+#spring properties
+spring:
+  profiles: dev
+  application:
+    name: frog-refund-service
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/cdot_elec_frog?useUnicode=true&characterEncoding=utf-8
+    username: root
+    password: chargedot
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    initialSize: 5
+    minIdle: 2
+    maxActive: 20
+    timeBetweenEvictionRunsMillis: 60000
+    minEvictableIdleTimeMillis: 300000
+    validationQuery: SELECT 1 FROM DUAL
+    testWhileIdle: true
+    testOnBorrow: false
+    testOnReturn: false
+    logSlowSql: true
+    maxWait: 30000
+  #kafka config
+  kafka:
+    bootstrap-servers: 127.0.0.1:9092
+    consumer:
+      group-id: frogRefundService
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+  #redis config
+  redis:
+    host: 127.0.0.1
+    port: 6379
+
+#eureka config
+eureka:
+  instance:
+    preferIpAddress: true
+  client:
+    filter-only-up-instances: true
+    registry-fetch-interval-seconds: 5
+    instance-info-replication-interval-seconds: 5
+    initial-instance-info-replication-interval-seconds: 5
+    serviceUrl:
+      defaultZone: http://localhost:18761/eureka/
+    fetch-registry: true
+
+#server config
+server:
+  port: 8563
+
+#restTemplate time out config
+rest:
+  connectionRequestTimeout: 35000
+  readTimeout: 35000
+  connectTimeout: 35000
+
+
+#mybatis config
+mybatis:
+  mapper-locations: classpath:com/chargedot/refund/mapper/*.xml
+  type-aliases-package: com.chargedot.refund.model
+
+#logging config
+logging:
+  level:
+    com.chargedot.elecfrogservice.dao.mapper: debug
+
+#hystrix time out config
+hystrix:
+  command:
+    default:
+      execution:
+        isolation:
+          thread:
+            timeoutInMilliseconds: 60000
+
+request:
+  message:
+    queue:
+      capacity: 10000
+    handler:
+      count: 4
+
+charge:
+  rate:
+    default:
+      detail: "{\"3600\":100}"
+      hour: 3600
+      fee: 100
+
+#push url config
+push:
+  user:
+    url: https://minipro.elefrog.com:2443/
+
+---
+#spring properties
+spring:
+  profiles: test
+  application:
+    name: frog-refund-service
+  datasource:
+    url: jdbc:mysql://172.31.172.141:3306/cdot_elec_frog?useUnicode=true&characterEncoding=utf-8
+    username: root
+    password: chargedot
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    initialSize: 5
+    minIdle: 2
+    maxActive: 20
+    timeBetweenEvictionRunsMillis: 60000
+    minEvictableIdleTimeMillis: 300000
+    validationQuery: SELECT 1 FROM DUAL
+    testWhileIdle: true
+    testOnBorrow: false
+    testOnReturn: false
+    logSlowSql: true
+    maxWait: 30000
+  #kafka config
+  kafka:
+    bootstrap-servers: 172.31.172.142:9092
+    consumer:
+      group-id: frogRefundService
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+  #redis config
+  redis:
+    host: 127.0.0.1
+    port: 6379
+
+#eureka config
+eureka:
+  instance:
+    preferIpAddress: true
+  client:
+    filter-only-up-instances: true
+    registry-fetch-interval-seconds: 5
+    instance-info-replication-interval-seconds: 5
+    initial-instance-info-replication-interval-seconds: 5
+    serviceUrl:
+      defaultZone: http://172.31.172.142:18761/eureka/
+    fetch-registry: true
+
+#server config
+server:
+  port: 8563
+
+#restTemplate time out config
+rest:
+  connectionRequestTimeout: 35000
+  readTimeout: 35000
+  connectTimeout: 35000
+
+#mybatis config
+mybatis:
+  mapper-locations: classpath:com/chargedot/refund/mapper/*.xml
+  type-aliases-package: com.chargedot.refund.model
+
+#logging config
+logging:
+  level:
+    com.chargedot.elecfrogservice.dao.mapper: debug
+
+#hystrix time out config
+hystrix:
+  command:
+    default:
+      execution:
+        isolation:
+          thread:
+            timeoutInMilliseconds: 60000
+
+request:
+  message:
+    queue:
+      capacity: 10000
+    handler:
+      count: 4
+
+charge:
+  rate:
+    default:
+      detail: "{\"3600\":100}"
+      hour: 3600
+      fee: 100
+
+#push url config
+push:
+  user:
+    url: https://minipro.elefrog.com:2443/
+
+---
+#spring properties
+spring:
+  profiles: pro
+  application:
+    name: frog-refund-service
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/cdot_elec_frog?useUnicode=true&characterEncoding=utf-8
+    username: root
+    password: chargedot
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    initialSize: 5
+    minIdle: 2
+    maxActive: 20
+    timeBetweenEvictionRunsMillis: 60000
+    minEvictableIdleTimeMillis: 300000
+    validationQuery: SELECT 1 FROM DUAL
+    testWhileIdle: true
+    testOnBorrow: false
+    testOnReturn: false
+    logSlowSql: true
+    maxWait: 30000
+  #kafka config
+  kafka:
+    bootstrap-servers: 127.0.0.1:9092
+    consumer:
+      group-id: frogRefundService
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+  #redis config
+  redis:
+    host: 127.0.0.1
+    port: 6379
+
+#eureka config
+eureka:
+  instance:
+    preferIpAddress: true
+  client:
+    filter-only-up-instances: true
+    registry-fetch-interval-seconds: 5
+    instance-info-replication-interval-seconds: 5
+    initial-instance-info-replication-interval-seconds: 5
+    serviceUrl:
+      defaultZone: http://localhost:18761/eureka/
+    fetch-registry: true
+
+#server config
+server:
+  port: 8563
+
+#restTemplate time out config
+rest:
+  connectionRequestTimeout: 35000
+  readTimeout: 35000
+  connectTimeout: 35000
+
+
+#mybatis config
+mybatis:
+  mapper-locations: classpath:com/chargedot/refund/mapper/*.xml
+  type-aliases-package: com.chargedot.refund.model
+
+#logging config
+logging:
+  level:
+    com.chargedot.elecfrogservice.dao.mapper: debug
+
+#hystrix time out config
+hystrix:
+  command:
+    default:
+      execution:
+        isolation:
+          thread:
+            timeoutInMilliseconds: 60000
+
+request:
+  message:
+    queue:
+      capacity: 10000
+    handler:
+      count: 4
+
+charge:
+  rate:
+    default:
+      detail: "{\"3600\":100}"
+      hour: 3600
+      fee: 100
+
+#push url config
+push:
+  user:
+    url: https://minipro.elefrog.com:2443/

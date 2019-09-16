@@ -36,7 +36,7 @@ public class SequenceNumberGengerator {
      *
      * @return
      */
-    public synchronized String generate(long timeMillis, int userId, int couplerId) {
-        return DF_TIMESTAMP.get().format(new Date(timeMillis)) + String.format("%08d", userId) + String.format("%08d", couplerId);
+    public synchronized String generate(long timeMillis, int certId, int couplerId) {
+        return DF_TIMESTAMP.get().format(new Date(timeMillis)) + String.format("%08d", certId) + String.format("%08d", couplerId);
     }
 }

@@ -14,6 +14,7 @@ public class ConstantConfig {
     public static final String DWS_ERROR_RES = "DWS-ERROR-RES";//设备错误信息响应
     public static final String DWD_START_STOP_RESULT_REQ = "DWStartStopResultPush";//充电起停结果上报
     public static final String DWD_CHECK_IN_REQ = "DWD-CHECKIN-REQ";//设备登陆签到
+    public static final String DW_CHARGE_REFUND_TOPIC = "DW-CHARGE-REFUND-TOPIC";// 充电退款
     public static final String S2D_REQ_TOPIC = "DWS-SERVER-REQ";
     public static final String S2D_RES_TOPIC = "DWS-SERVER-RES";
     public static final String D2S_REQ_TOPIC = "DWD-SERVER-REQ";
@@ -75,11 +76,12 @@ public class ConstantConfig {
     public static final int FINISH_OUT_OF_AC = 4;
 
     /**
-     * 卡类型: 1包月次卡 2包月包时卡 3充值卡
+     * 卡类型: 1包月次卡 2包月包时卡 3充值卡 4手机号
      */
-    public static final int CARD_TYPE_OF_MONTHLY_TIME = 1;
-    public static final int CARD_TYPE_OF_MONTH_COUNT = 2;
+    public static final int CARD_TYPE_OF_MONTH_COUNT = 1;
+    public static final int CARD_TYPE_OF_MONTH_TIME = 2;
     public static final int CARD_TYPE_OF_BALANCE = 3;
+    public static final int CERT_OF_PHONE = 4;
 
     /**
      * 用户类型：1纯手机用户,2为绑定过app的用户3包月包时卡用户4包月包次5充值卡用户
@@ -111,6 +113,12 @@ public class ConstantConfig {
     public static final int PAID = 2;
     public static final int REFUND = 4;
 
+    /**
+     * 扣款来源 1实账 2虚账 3虚实结合
+     */
+    public static final int PAY_SRC_REAL = 1;
+    public static final int PAY_SRC_VIRTUAL = 2;
+    public static final int PAY_SRC_REAL_AND_VIRTUAL = 3;
 
     /**
      * 支付方式 1为余额支付,2支付宝支付,3微信支付,4月卡支付,5平台扣款，6站点卡支付，7优惠卡（满几次送几次的卡）8包月包时卡9包月包次卡10充值卡

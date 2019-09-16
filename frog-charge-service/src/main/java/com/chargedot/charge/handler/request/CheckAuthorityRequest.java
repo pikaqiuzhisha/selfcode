@@ -1,17 +1,20 @@
 package com.chargedot.charge.handler.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * @author Eric Gui
  * @date 2019/4/16
  */
 public class CheckAuthorityRequest extends Request {
 
+    @JsonProperty("CardNumber")
     String cardNumber;
 
-    String deviceNumber;
-
+    @JsonProperty("Port")
     String port;
 
+    @JsonProperty("SeqNumber")
     int seqNumber;
 
     public String getCardNumber() {
@@ -20,14 +23,6 @@ public class CheckAuthorityRequest extends Request {
 
     public void setCardNumber(String cardNumber) {
         this.cardNumber = cardNumber;
-    }
-
-    public String getDeviceNumber() {
-        return deviceNumber;
-    }
-
-    public void setDeviceNumber(String deviceNumber) {
-        this.deviceNumber = deviceNumber;
     }
 
     public String getPort() {

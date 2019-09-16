@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.chargedot.charge.mapper.ChargeCertMapper">
+
+    <!--findByCertNumber-->
+    <select id="findByCertNumber" resultType="com.chargedot.charge.model.ChargeCert" parameterType="java.lang.String">
+        SELECT
+            c.id AS id,
+            c.cert_number AS certNumber,
+            c.enterprise_id AS enterpriseId,
+            c.user_id AS userId,
+            c.type AS type,
+            c.begined_at AS beginedAt,
+            c.finished_at AS finishedAt,
+            c.max_value AS maxChargeValue,
+            c.cur_value AS curValue,
+            c.real_value AS realValue,
+            c.forbid_status AS forbidStatus,
+            c.cert_status AS certStatus
+        FROM dw_cert AS c
+        WHERE c.cert_number=#{certNumber} AND c.is_del=0 LIMIT 1
+    </select>
+
+    <!--findByCertId-->
+    <select id="findByCertId" resultType="com.chargedot.charge.model.ChargeCert" parameterType="java.lang.Integer">
+        SELECT
+            c.id AS id,
+            c.cert_number AS certNumber,
+            c.enterprise_id AS enterpriseId,
+            c.user_id AS userId,
+            c.type AS type,
+            c.begined_at AS beginedAt,
+            c.finished_at AS finishedAt,
+            c.max_value AS maxChargeValue,
+            c.cur_value AS curValue,
+            c.real_value AS realValue,
+            c.forbid_status AS forbidStatus,
+            c.cert_status AS certStatus
+        FROM dw_cert AS c
+        WHERE c.id=#{certId} AND c.is_del=0 LIMIT 1
+    </select>
+
+    <!--updateCertStatus-->
+    <update id="updateCertStatus" parameterType="com.chargedot.charge.model.ChargeCert">
+        UPDATE dw_cert
+        <set>
+            <if test="#{curValue} != null">
+                cur_value=#{curValue},
+            </if>
+            <if test="#{realValue} != null">
+                real_value=#{realValue},
+            </if>
+            <if test="#{cardStatus} != null">
+                cert_status=#{certStatus}
+            </if>
+        </set>
+        WHERE cert_number=#{certNumber} AND is_del=0
+    </update>
+
+</mapper>

@@ -80,7 +80,7 @@
         p.detail AS detail,
         s.fee_detail AS feeDetail
       FROM dw_device_port AS p LEFT JOIN dw_station AS s ON s.id=p.station_id
-      WHERE p.try_occupy_user_id=#{userId} AND p.is_del=0 AND s.is_del=0 LIMIT 1
+      WHERE p.try_occupy_user_id=#{certId} AND p.is_del=0 AND s.is_del=0 LIMIT 1
     </select>
 
     <!--update-->

@@ -30,6 +30,14 @@ public class CardStream {
 
     private Integer changeValue;
 
+    private Integer curValue;
+
+    private Integer realPreValue;
+
+    private Integer realChangeValue;
+
+    private Integer curRealValue;
+
     /**
      * 1来自平台2来自小程序3刷卡
      */
@@ -37,7 +45,8 @@ public class CardStream {
 
     private Integer operatorId;
 
-    public void setter(int orderId, long cardId, int userId, String beginedAt, String finishedAt, int streamType, int preValue, int changeValue, int operatorSrc, int operatorId) {
+    public void setter(int orderId, long cardId, int userId, String beginedAt, String finishedAt, int streamType, int preValue, int changeValue, int curValue,
+                       int realPreValue, int realChangeValue, int curRealValue, int operatorSrc, int operatorId) {
         this.setOrderId(orderId);
         this.setCardId(cardId);
         this.setUserId(userId);
@@ -46,6 +55,10 @@ public class CardStream {
         this.setStreamType(streamType);
         this.setPreValue(preValue);
         this.setChangeValue(changeValue);
+        this.setCurValue(curValue);
+        this.setRealPreValue(realPreValue);
+        this.setRealChangeValue(realChangeValue);
+        this.setCurRealValue(curRealValue);
         this.setOperatorSrc(operatorSrc);
         this.setOperatorId(operatorId);
     }

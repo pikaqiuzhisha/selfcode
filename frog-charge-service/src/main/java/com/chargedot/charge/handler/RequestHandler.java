@@ -9,10 +9,7 @@ import com.chargedot.charge.handler.request.*;
 import com.chargedot.charge.mapper.*;
 import com.chargedot.charge.message.KafkaProducer;
 import com.chargedot.charge.model.*;
-import com.chargedot.charge.util.ChargeOrderNumberGenerator;
-import com.chargedot.charge.util.JacksonUtil;
-import com.chargedot.charge.util.MapUtil;
-import com.chargedot.charge.util.SequenceNumberGengerator;
+import com.chargedot.charge.util.*;
 import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
@@ -51,13 +48,10 @@ public class RequestHandler {
     private ServerConfig serverConfig;
 
     @Autowired
-    private ChargeCardMapper chargeCardMapper;
+    private ChargeCertMapper chargeCertMapper;
 
     @Autowired
     private DevicePortMapper devicePortMapper;
-
-    @Autowired
-    private UserMapper userMapper;
 
     @Autowired
     private ChargeOrderMapper chargeOrderMapper;
@@ -148,181 +142,22 @@ public class RequestHandler {
         CheckInRequest checkInRequest = request;
         String deviceNumber = checkInRequest.getDeviceNumber();
         int connectNetMode = checkInRequest.getConnectNetMode();
-
         if (connectNetMode != ConstantConfig.DEV_RECONNECT_NET) {
-            // 设备非断网重连，需判断是否需要退款
+            // 设备非断网重连，触发退款
+            kafkaProducer.send(ConstantConfig.DW_CHARGE_REFUND_TOPIC, request.getDeviceNumber(), JacksonUtil.bean2Json(checkInRequest));
             List<DevicePort> devicePortList = devicePortMapper.findLikeDeviceNumber(deviceNumber);
             if (Objects.nonNull(devicePortList) && !devicePortList.isEmpty()) {
                 for (DevicePort devicePort : devicePortList) {
-                    // 查找最近一条进行中的订单，判断是否需要退款
-                    ChargeOrder chargeOrder = chargeOrderMapper.findByPortIdLast(devicePort.getId());
-
-                    if (Objects.nonNull(chargeOrder)) {
-                        if (chargeOrder.getStartType() == ConstantConfig.START_BY_CARD) {
-                            int userId = chargeOrder.getUserId();
-                            ChargeCard chargeCard = chargeCardMapper.findByUserId(userId);
-                            if (Objects.isNull(chargeCard)) {
-                                log.warn("[CheckInRequest][{}]user({}) card not exist", devicePort.getPortNumber(), userId);
-                                continue;
-                            }
-
-                            if (chargeOrder.getPayment() > 0 && chargeOrder.getPayType() == ConstantConfig.PAY_BY_BALANCE) {
-                                // 使用余额支付，启动方式是卡订单进行退款
-                                boolean refund = false;
-                                int actPayment = 0;
-
-                                // 如果实际充电时长小于站点费率设置的最低费率，产生退款
-                                String feeDetail = chargeOrder.getFeeDetailSnap();
-                                int defaultChargeRateHour = serverConfig.getDefaultChargeRateHour();
-                                int actualChargeTime = chargeOrder.getDuration();
-
-                                if (StringUtils.isBlank(feeDetail)) {
-                                    if (actualChargeTime < defaultChargeRateHour) {
-                                        refund = true;
-                                        actPayment = serverConfig.getDefaultChargeRateFee();
-                                        log.info("[CheckInRequest][{}]order({}) need refund, actChargeTime({}), minRateTime({})",
-                                                deviceNumber, chargeOrder.getOrderNumber(), actualChargeTime, defaultChargeRateHour);
-                                    }
-                                } else {
-                                    TypeReference<Map<String, Integer>> type = new TypeReference<Map<String, Integer>>() {
-                                    };
-                                    Map<String, Integer> rates = (Map<String, Integer>) JacksonUtil.json2Map(feeDetail, type);
-                                    if (Objects.isNull(rates) || rates.isEmpty()) {
-                                        if (actualChargeTime < defaultChargeRateHour) {
-                                            refund = true;
-                                            actPayment = serverConfig.getDefaultChargeRateFee();
-                                            log.info("[CheckInRequest][{}]order({}) need refund, actChargeTime({}), minRateTime({})",
-                                                    deviceNumber, chargeOrder.getOrderNumber(), actualChargeTime, defaultChargeRateHour);
-                                        }
-                                    } else {
-                                        LinkedHashMap<String, Integer> sortRates = (LinkedHashMap<String, Integer>) MapUtil.sortByValueAscending(rates);
-                                        Map.Entry<String, Integer> minRate = sortRates.entrySet().iterator().next();
-                                        if (actualChargeTime < Integer.parseInt(minRate.getKey())) {
-                                            refund = true;
-                                            actPayment = minRate.getValue();
-                                            log.info("[CheckInRequest][{}]order({}) need refund, actChargeTime({}), minRateTime({})",
-                                                    deviceNumber, chargeOrder.getOrderNumber(), actualChargeTime, minRate.getKey());
-                                        }
-                                    }
-                                }
-
-                                if (refund) {
-                                    // 实际退款
-                                    int refundAct = chargeOrder.getPayment() - actPayment;
-                                    chargeOrder.refundSetter(actPayment, refundAct, ConstantConfig.ORDER_TYPE_EXCEPTION,
-                                            ConstantConfig.REFUND, ConstantConfig.FINISH_SUCCESS, now);
-
-                                    long startedAt = 0L;
-                                    if (StringUtils.isNotBlank(chargeOrder.getStartedAt())) {
-                                        try {
-                                            startedAt = simpleDateFormat.parse(chargeOrder.getStartedAt()).getTime();
-                                            long finishAt = startedAt + chargeOrder.getDuration() * 1000;
-                                            chargeOrder.setFinishedAt(simpleDateFormat.format(new Date(finishAt)));
-                                        } catch (Exception e) {
-                                            log.warn("[CheckInRequest][{}]parse order({}) start time failed, ",
-                                                    deviceNumber, chargeOrder.getOrderNumber(), e.getMessage(), e);
-                                        }
-                                    } else {
-                                        chargeOrder.setFinishedAt(now);
-                                    }
-                                    chargeOrder.setChargeFinishReason(ReasonCode.getType(ConstantConfig.DEV_RESTART_MODE));
-
-                                    chargeOrderMapper.refundUpdate(chargeOrder);
-                                    log.info("[CheckInRequest][{}]order({}) refund update, refundAct({}), actPayment({})",
-                                            deviceNumber, chargeOrder.getOrderNumber(), refundAct, actPayment);
-
-                                    // 退款流水
-                                    int curValue = chargeCard.getCurValue();
-                                    CardStream cardStream = new CardStream();
-                                    cardStream.setter(chargeOrder.getId(), chargeCard.getId(), userId, chargeCard.getBeginedAt(), chargeCard.getFinishedAt(),
-                                            ConstantConfig.STREAM_TYPE_REFOUND, curValue, refundAct, ConstantConfig.OPERATOR_SRC_CARD, userId);
-
-                                    cardStreamMapper.insert(cardStream);
-                                    log.info("[CheckInRequest][{}]order({}) refund stream({})",
-                                            deviceNumber, chargeOrder.getOrderNumber(), cardStream.getId());
-
-                                    // 更正卡余额
-                                    chargeCard.setCurValue(curValue + refundAct);
-
-                                    // 更新订单退款流水ID
-                                    chargeOrder.setRefundStreamId(cardStream.getId());
-                                    chargeOrderMapper.updateRefundStream(chargeOrder.getSequenceNumber(), chargeOrder.getRefundStreamId());
-                                }
-
-                                chargeCard.setCardStatus(ConstantConfig.CARD_AVAILABLE);
-                                chargeCardMapper.updateCardStatus(chargeCard);
-                                log.info("[CheckInRequest][{}]update chargeCard({}), status({}), curValue({})",
-                                        deviceNumber, chargeCard.getCardNumber(), chargeCard.getCardStatus(), chargeCard.getCurValue());
-                            } else if (ConstantConfig.CARD_TYPE_OF_MONTHLY_TIME == chargeCard.getType() ||
-                                    ConstantConfig.CARD_TYPE_OF_MONTH_COUNT == chargeCard.getType()){
-                                long startedAt = 0L;
-                                long finishAt = 0L;
-                                if (StringUtils.isNotBlank(chargeOrder.getStartedAt())) {
-                                    try {
-                                        startedAt = simpleDateFormat.parse(chargeOrder.getStartedAt()).getTime();
-                                        finishAt = startedAt + chargeOrder.getDuration() * 1000;
-                                        chargeOrder.setFinishedAt(simpleDateFormat.format(new Date(finishAt)));
-                                    } catch (Exception e) {
-                                        log.warn("[CheckInRequest][{}]parse order({}) start time failed, ",
-                                                deviceNumber, chargeOrder.getOrderNumber(), e.getMessage(), e);
-                                    }
-                                } else {
-                                    chargeOrder.setFinishedAt(now);
-                                }
-                                chargeOrder.setChargeFinishReason(ReasonCode.getType(ConstantConfig.DEV_RESTART_MODE));
-
-                                if (ConstantConfig.CARD_TYPE_OF_MONTHLY_TIME == chargeCard.getType()) {
-                                    chargeOrder.setPayType(ConstantConfig.PAY_BY_MONTHLY_TIME_CARD);
-                                } else {
-                                    chargeOrder.setPayType(ConstantConfig.PAY_BY_MONTHLY_COUNT_CARD);
-                                }
-                                chargeOrder.setOrderType(ConstantConfig.ORDER_TYPE_EXCEPTION);
-                                chargeOrder.setPayStatus(ConstantConfig.PAID);
-                                chargeOrder.setPayedOrderAt(now);
-
-                                chargeOrder.setOrderStatus(ConstantConfig.FINISH_SUCCESS);
-
-                                chargeOrderMapper.update(chargeOrder);
-                                log.info("[CheckInRequest][{}]update order({}), user({}), sequenceNumber({}), port({}), duration({})",
-                                        deviceNumber, chargeOrder.getOrderNumber(), userId, chargeOrder.getSequenceNumber(), devicePort.getPortNumber(), chargeOrder.getDuration());
-
-                                if (ConstantConfig.CARD_TYPE_OF_MONTHLY_TIME == chargeCard.getType()) {
-                                    int curValue = 0;
-                                    DateTimeFormatter df = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-                                    log.info("[CheckInRequest][{}]order({}) startedAt={}, finishedAt={}",
-                                            deviceNumber, chargeOrder.getOrderNumber(), chargeOrder.getStartedAt(), chargeOrder.getFinishedAt());
-                                    LocalDateTime nowDate = LocalDateTime.now();
-                                    LocalDateTime startDate = LocalDateTime.parse(chargeOrder.getStartedAt().substring(0, 19), df);
-                                    LocalDateTime finishDate = LocalDateTime.parse(chargeOrder.getFinishedAt().substring(0, 19), df);
-
-                                    if (startDate.toLocalDate().isBefore(nowDate.toLocalDate()) && finishDate.toLocalDate().isBefore(nowDate.toLocalDate())) {
-                                        curValue = chargeCard.getCurValue();
-                                    } else if (startDate.toLocalDate().isBefore(nowDate.toLocalDate()) && !finishDate.toLocalDate().isBefore(nowDate.toLocalDate())) {
-                                        long current = System.currentTimeMillis();
-                                        long zero = current / (1000 * 3600 * 24) * (1000 * 3600 * 24) - TimeZone.getDefault().getRawOffset();
-                                        curValue = chargeCard.getCurValue() - (int) ((finishAt - zero) / 1000) / 60;
-                                    } else {
-                                        curValue = chargeCard.getCurValue() - chargeOrder.getDuration() / 60;
-                                    }
-
-                                    // 更新充电卡信息
-                                    chargeCard.setCurValue(curValue > 0 ? curValue : 0);
-                                }
-                                chargeCard.setCardStatus(ConstantConfig.CARD_AVAILABLE);
-                                chargeCardMapper.updateCardStatus(chargeCard);
-                                log.info("[CheckInRequest][{}]update chargeCard({}), status({}), curValue({})",
-                                        deviceNumber, chargeCard.getCardNumber(), chargeCard.getCardStatus(), chargeCard.getCurValue());
-                            }
-
-                        }
-                    }
+                    CouplerDynamicDetail detail = new CouplerDynamicDetail();
+                    devicePort.setTryOccupyUserId(0);
+                    devicePort.setDetail(JacksonUtil.bean2Json(detail));
+                    devicePortMapper.update(devicePort);
+                    log.info("[ReportStopChargeRequest][{}]update device({}), status({}), occupyUserId({})",
+                            deviceNumber, devicePort.getPortNumber(), devicePort.getStatus(), devicePort.getTryOccupyUserId());
                 }
-            } else {
-                log.warn("[CheckInRequest][{}]device({}) not found", deviceNumber, deviceNumber);
             }
         }
     }
-
 
     /**
      * 刷卡鉴权
@@ -354,58 +189,68 @@ public class RequestHandler {
             }
         }
 
-        ChargeCard chargeCard = null;
-        Integer userId = 0;
+        ChargeCert chargeCert = null;
+        long certId = 0L;
         int result = 2;
         int duration = 0;
-        int cardType = 0; // 卡类型：1包月次卡 2包月包时卡 3充值卡
+        int certType = 0; // 卡类型：1包月次卡 2包月包时卡 3充值卡
         int chargeBalance = 0; // 卡余额（次数/时长/余额）
         if (authorized) {
-            chargeCard = chargeCardMapper.findByCardNumber(cardNumber);
-            if (Objects.nonNull(chargeCard)) {
-                userId = chargeCard.getUserId();
-                cardType = chargeCard.getType();
+            chargeCert = chargeCertMapper.findByCertNumber(cardNumber);
+            if (Objects.nonNull(chargeCert)) {
+                certId = chargeCert.getId();
+                certType = chargeCert.getType();
                 //字符串转时间
-                String finishedAt = chargeCard.getFinishedAt();
+                String finishedAt = chargeCert.getFinishedAt();
                 DateTimeFormatter df = DateTimeFormatter.ofPattern("yyyy-MM-dd");
                 LocalDate finishDate = LocalDate.parse(finishedAt, df);
                 LocalDate now = LocalDate.now();
                 if (finishDate.isBefore(now)) {
                     // 有效期
                     authorized = false;
-                    log.warn("[CheckAuthorityRequest][{}]card({}) has expired", deviceNumber, chargeCard.getCardNumber());
+                    log.warn("[CheckAuthorityRequest][{}]card({}) has expired", deviceNumber, chargeCert.getCertNumber());
                 }
 
-                if (chargeCard.getForbidStatus() == ConstantConfig.CARD_FORBIDDEN) {
+                if (chargeCert.getForbidStatus() == ConstantConfig.CARD_FORBIDDEN) {
                     // 封禁状态
                     authorized = false;
-                    log.warn("[CheckAuthorityRequest][{}]card({}) not active", deviceNumber, chargeCard.getCardNumber());
+                    log.warn("[CheckAuthorityRequest][{}]card({}) not active", deviceNumber, chargeCert.getCertNumber());
                 }
 
-                if (chargeCard.getCardStatus() != ConstantConfig.CARD_AVAILABLE) {
+                if (chargeCert.getCertStatus() != ConstantConfig.CARD_AVAILABLE) {
                     // 使用状态
                     authorized = false;
                     log.warn("[CheckAuthorityRequest][{}]card({}) current state unavailable(status={}) ",
-                            deviceNumber, chargeCard.getCardNumber(), chargeCard.getCardStatus());
+                            deviceNumber, chargeCert.getCertNumber(), chargeCert.getCertStatus());
                 }
 
-                if (chargeCard.getCurValue() <= ConstantConfig.CARD_LOWEST_USE_COUNT) {
-                    // 余额或剩余时长或剩余次数
-                    authorized = false;
-                    log.warn("[CheckAuthorityRequest][{}]card({}) remaining time or balance or usage insufficient(curValue={})",
-                            deviceNumber, chargeCard.getCardNumber(), chargeCard.getCurValue());
+                if (chargeCert.getType() != ConstantConfig.CARD_TYPE_OF_BALANCE) {
+                    if (chargeCert.getCurValue() <= ConstantConfig.CARD_LOWEST_USE_COUNT) {
+                        // 剩余时长或剩余次数
+                        authorized = false;
+                        log.warn("[CheckAuthorityRequest][{}]card({}) remaining time or balance or usage insufficient(curValue={})",
+                                deviceNumber, chargeCert.getCertNumber(), chargeCert.getCertStatus());
+                    }
+                } else {
+                    if ((chargeCert.getCurValue() + chargeCert.getRealValue()) <= ConstantConfig.CARD_LOWEST_USE_COUNT) {
+                        // 余额
+                        authorized = false;
+                        log.warn("[CheckAuthorityRequest][{}]card({}) remaining time or balance or usage insufficient(curValue={})",
+                                deviceNumber, chargeCert.getCertNumber(), chargeCert.getCertStatus());
+                    }
                 }
 
-                if (chargeCard.getType() == ConstantConfig.CARD_TYPE_OF_BALANCE) {
+
+                if (chargeCert.getType() == ConstantConfig.CARD_TYPE_OF_BALANCE) {
                     log.info("[CheckAuthorityRequest][{}]card({}) defaultDetailFee({})",
-                            deviceNumber, chargeCard.getCardNumber(), serverConfig.getDefaultFeeDetailSnap());
+                            deviceNumber, chargeCert.getCertNumber(), serverConfig.getDefaultFeeDetailSnap());
                     // 余额卡需要判断余额是否满足站点充电费率
                     if (StringUtils.isBlank(devicePort.getFeeDetail())) {
                         // 站点未设置费率，与参数配置的默认费率比较
-                        if (chargeCard.getCurValue() < serverConfig.defaultChargeRateFee) {
+                        if ((chargeCert.getCurValue() + chargeCert.getRealValue()) < serverConfig.defaultChargeRateFee) {
                             authorized = false;
                             log.warn("[CheckAuthorityRequest][{}]card({}) insufficient balance(curValue={}), station default minimum rate({})",
-                                    deviceNumber, chargeCard.getCardNumber(), chargeCard.getCurValue(), serverConfig.defaultChargeRateFee);
+                                    deviceNumber, chargeCert.getCertNumber(), (chargeCert.getCurValue() + chargeCert.getRealValue()), serverConfig.defaultChargeRateFee);
                         } else {
                             // 充电时长等于参数配置的默认时长
                             duration = serverConfig.defaultChargeRateHour / 60;
@@ -415,10 +260,10 @@ public class RequestHandler {
                         };
                         Map<String, Integer> rates = (Map<String, Integer>) JacksonUtil.json2Map(devicePort.getFeeDetail(), type);
                         if (Objects.isNull(rates) || rates.isEmpty()) {
-                            if (chargeCard.getCurValue() < serverConfig.defaultChargeRateFee) {
+                            if ((chargeCert.getCurValue() + chargeCert.getRealValue()) < serverConfig.defaultChargeRateFee) {
                                 authorized = false;
                                 log.warn("[CheckAuthorityRequest][{}]card({}) insufficient balance(curValue={}), station default minimum rate({})",
-                                        deviceNumber, chargeCard.getCardNumber(), chargeCard.getCurValue(), serverConfig.defaultChargeRateFee);
+                                        deviceNumber, chargeCert.getCertNumber(), (chargeCert.getCurValue() + chargeCert.getRealValue()), serverConfig.defaultChargeRateFee);
                             } else {
                                 // 充电时长等于参数配置的默认时长
                                 duration = serverConfig.defaultChargeRateHour / 60;
@@ -426,7 +271,7 @@ public class RequestHandler {
                         } else {
                             LinkedHashMap<String, Integer> sortRates = (LinkedHashMap<String, Integer>) MapUtil.sortByValueDescending(rates);
                             Map.Entry<String, Integer> maxRate = sortRates.entrySet().iterator().next();
-                            if (chargeCard.getCurValue() < maxRate.getValue()) {
+                            if ((chargeCert.getCurValue() + chargeCert.getRealValue()) < maxRate.getValue()) {
                                 // 余额小于最大费率，则与最小费率比价
                                 Map.Entry<String, Integer> entry = null;
                                 try {
@@ -435,36 +280,31 @@ public class RequestHandler {
                                     log.warn("[CheckAuthorityRequest][{}]feeDetail map sort failed, ", deviceNumber, e.getMessage(), e);
                                     return;
                                 }
-                                if (chargeCard.getCurValue() < entry.getValue()) {
+                                if ((chargeCert.getCurValue() + chargeCert.getRealValue()) < entry.getValue()) {
                                     // 余额小于最小费率
                                     authorized = false;
                                     log.warn("[CheckAuthorityRequest][{}]card({}) insufficient balance(curValue={}), station minimum rate({})",
-                                            deviceNumber, chargeCard.getCardNumber(), chargeCard.getCurValue(), entry.getValue());
+                                            deviceNumber, chargeCert.getCertNumber(), (chargeCert.getCurValue() + chargeCert.getRealValue()), entry.getValue());
                                 } else {
                                     duration = Integer.parseInt(entry.getKey()) / 60;
                                     log.info("[CheckAuthorityRequest][{}]card({}) preset duration({}) of station minimum rate(duration={}, fee={})",
-                                            deviceNumber, chargeCard.getCardNumber(), duration, entry.getKey(), entry.getValue());
+                                            deviceNumber, chargeCert.getCertNumber(), duration, entry.getKey(), entry.getValue());
                                 }
                             } else {
                                 duration = Integer.parseInt(maxRate.getKey()) / 60;
                                 log.info("[CheckAuthorityRequest][{}]card({}) preset duration({}) of station maximum rate(duration={}, fee={})",
-                                        deviceNumber, chargeCard.getCardNumber(), duration, maxRate.getKey(), maxRate.getValue());
+                                        deviceNumber, chargeCert.getCertNumber(), duration, maxRate.getKey(), maxRate.getValue());
                             }
                         }
                     }
                 }
 
-                User user = userMapper.findById(userId);
-                if (Objects.isNull(user)) { // 用户不存在
+                // 用户知否占用其他设备
+                devicePort = devicePortMapper.findByOccupyUserId((int)certId);
+                if (Objects.nonNull(devicePort)) {
                     authorized = false;
-                    log.warn("[CheckAuthorityRequest][{}]user({}) not exist or status is forbidden", deviceNumber, port, userId);
-                } else { // 用户知否占用其他设备
-                    devicePort = devicePortMapper.findByOccupyUserId(userId);
-                    if (Objects.nonNull(devicePort)) {
-                        authorized = false;
-                        log.warn("[CheckAuthorityRequest][{}]card({}) associated user({}), are occupying device({})",
-                                deviceNumber, cardNumber, userId, devicePort.getPortNumber());
-                    }
+                    log.warn("[CheckAuthorityRequest][{}]card({}) are occupying device({})",
+                            deviceNumber, cardNumber, devicePort.getPortNumber());
                 }
             } else {
                 // 卡片不存在
@@ -478,13 +318,13 @@ public class RequestHandler {
         Map<String, Object> params = new HashMap<>();
         if (authorized) {
             result = 0;
-            chargeBalance = chargeCard.getCurValue();
-            if (chargeCard.getType() != ConstantConfig.CARD_TYPE_OF_BALANCE) {
-                duration = chargeCard.getCurValue();
+            chargeBalance = (chargeCert.getCurValue() + chargeCert.getRealValue());
+            if (chargeCert.getType() != ConstantConfig.CARD_TYPE_OF_BALANCE) {
+                duration = chargeCert.getCurValue();
             }
             log.info("[CheckAuthorityRequest][{}]card({}) authentication success, presetChargeTime({})", deviceNumber, cardNumber, duration);
         } else {
-            userId = 0;
+            certId = 0L;
             log.info("[CheckAuthorityRequest][{}]card({}) authentication failed", deviceNumber, cardNumber);
         }
 
@@ -492,16 +332,16 @@ public class RequestHandler {
         params.put("Result", result);
         params.put("Duration", duration);
         params.put("SequenceNumber", sequenceNumber);
-        params.put("UserId", userId);
+        params.put("UserId", certId);
         params.put("Port", port);
-        params.put("CardType", cardType);
+        params.put("CardType", certType);
         params.put("ChargeBalance", chargeBalance);
         params.put("SeqNumber", seqNumber);
         kafkaProducer.send(ConstantConfig.S2D_RES_TOPIC, deviceNumber, JacksonUtil.map2Json(params));
     }
 
     /**
-     * 开始充电结果上报
+     * 开始充电结果或者用户扫码解锁响应结果上报
      * @param request
      * @throws NoSuchFieldException
      * @throws IllegalAccessException
@@ -532,18 +372,16 @@ public class RequestHandler {
         }
 
         Integer status = startChargeRequest.getStatus();
-        if (status == 1) { // 启动成功
-            Integer userId = startChargeRequest.getUserId();
-            Integer userType = startChargeRequest.getUserType();
-            if (userType == ConstantConfig.USER_TYPE_MONTH_COUNT
-                    || userType == ConstantConfig.USER_TYPE_MONTH_TIME
-                    || userType == ConstantConfig.USER_TYPE_PREPAID_CARD) { // 卡用户
-                ChargeCard chargeCard = chargeCardMapper.findByUserId(startChargeRequest.getUserId());
-                if (Objects.isNull(chargeCard)) { // 卡不存在
+        if (status == 1 && request.getType() == 1) { // 上报开始充电结果,启动成功
+            Integer certId = startChargeRequest.getCertId();
+            Integer certType = startChargeRequest.getCertType();
+            if (certType != ConstantConfig.CERT_OF_PHONE) { // 卡用户
+                ChargeCert chargeCert = chargeCertMapper.findByCertId(startChargeRequest.getCertId());
+                if (Objects.isNull(chargeCert)) { // 卡不存在
                     log.warn("[ReportStartChargeRequest][{}]device({}) start charge failed", deviceNumber, port);
                 } else { // 创建卡充电订单
                     String sequenceNumber = SequenceNumberGengerator.getInstance().generate(1000 * (long) startChargeRequest.getTimeStamp(),
-                            userId, devicePort.getId());
+                            certId, devicePort.getId());
 
                     ChargeOrder chargeOrder = chargeOrderMapper.findBySequenceNumber(sequenceNumber);
                     if (Objects.nonNull(chargeOrder)) {
@@ -553,29 +391,29 @@ public class RequestHandler {
 
                     String orderNumber = ChargeOrderNumberGenerator.getInstance().generate(devicePort.getDeviceId());
                     chargeOrder = new ChargeOrder();
-                    chargeOrder.startSetter(devicePort.getId(), devicePort.getDeviceId(), devicePort.getStationId(), userId,
-                            chargeCard.getCardNumber(), sequenceNumber, orderNumber, startChargeRequest.getPresetChargeTime() * 60);
+                    chargeOrder.startSetter(devicePort.getId(), devicePort.getDeviceId(), devicePort.getStationId(), certId, chargeCert.getUserId(),
+                            chargeCert.getCertNumber(), sequenceNumber, orderNumber, startChargeRequest.getPresetChargeTime() * 60);
 
-                    if (userType == ConstantConfig.USER_TYPE_MONTH_COUNT || userType == ConstantConfig.USER_TYPE_MONTH_TIME) {
-                        chargeOrder.paySetter(0, 0, ConstantConfig.UNPAID, ConstantConfig.ONGOING,
+                    if (certType == ConstantConfig.CARD_TYPE_OF_MONTH_COUNT || certType == ConstantConfig.CARD_TYPE_OF_MONTH_TIME) {
+                        chargeOrder.paySetter(0, 0, 0, 0, ConstantConfig.UNPAID,
                                 ConstantConfig.PAY_NULL, devicePort.getFeeDetail(), null);
                         chargeOrderMapper.insert(chargeOrder);
                         log.info("[ReportStartChargeRequest][{}]create new order({}), card({}), user({}), sequenceNumber({}), port({})",
-                                deviceNumber, orderNumber, chargeCard.getCardNumber(), userId, sequenceNumber, port);
+                                deviceNumber, orderNumber, chargeCert.getCertNumber(), certId, sequenceNumber, port);
 
                         // 更新充电卡信息
-                        chargeCard.setCardStatus(ConstantConfig.CARD_OCCUPYING);
-                        chargeCardMapper.updateCardStatus(chargeCard);
+                        chargeCert.setCertStatus(ConstantConfig.CARD_OCCUPYING);
+                        chargeCertMapper.updateCertStatus(chargeCert);
                         log.info("[ReportStartChargeRequest][{}]update chargeCard({}), status({}), curValue({})",
-                                deviceNumber, chargeCard.getCardNumber(), chargeCard.getCardStatus(), chargeCard.getCurValue());
+                                deviceNumber, chargeCert.getCertNumber(), chargeCert.getCertStatus(), chargeCert.getCurValue());
                     } else {
                         int payment = 0;
                         String feeDetailSnap = serverConfig.defaultFeeDetailSnap;
                         if (StringUtils.isBlank(devicePort.getFeeDetail())) {
                             // 站点未设置费率，与参数配置的默认费率比较
-                            if (chargeCard.getCurValue() < serverConfig.defaultChargeRateFee) {
+                            if ((chargeCert.getCurValue() + chargeCert.getRealValue()) < serverConfig.defaultChargeRateFee) {
                                 log.warn("[ReportStartChargeRequest][{}]card({}) insufficient balance(curValue={}), station default minimum rate({})",
-                                        deviceNumber, chargeCard.getCardNumber(), chargeCard.getCurValue(), serverConfig.defaultChargeRateFee);
+                                        deviceNumber, chargeCert.getCertNumber(), (chargeCert.getCurValue() + chargeCert.getRealValue()), serverConfig.defaultChargeRateFee);
                             }
                             payment = serverConfig.defaultChargeRateFee;
                         } else {
@@ -583,53 +421,71 @@ public class RequestHandler {
                             };
                             Map<String, Integer> rates = (Map<String, Integer>) JacksonUtil.json2Map(devicePort.getFeeDetail(), type);
                             if (Objects.isNull(rates) || rates.isEmpty()) {
-                                if (chargeCard.getCurValue() < serverConfig.defaultChargeRateFee) {
+                                if ((chargeCert.getCurValue() + chargeCert.getRealValue()) < serverConfig.defaultChargeRateFee) {
                                     log.warn("[ReportStartChargeRequest][{}]card({}) insufficient balance(curValue={}), station default minimum rate({})",
-                                            deviceNumber, chargeCard.getCardNumber(), chargeCard.getCurValue(), serverConfig.defaultChargeRateFee);
+                                            deviceNumber, chargeCert.getCertNumber(), (chargeCert.getCurValue() + chargeCert.getRealValue()), serverConfig.defaultChargeRateFee);
                                 }
                                 payment = serverConfig.defaultChargeRateFee;
                             } else {
                                 LinkedHashMap<String, Integer> sortRates = (LinkedHashMap<String, Integer>) MapUtil.sortByValueDescending(rates);
                                 Map.Entry<String, Integer> maxRate = sortRates.entrySet().iterator().next();
-                                if (chargeCard.getCurValue() < maxRate.getValue()) {
+                                if ((chargeCert.getCurValue() + chargeCert.getRealValue()) < maxRate.getValue()) {
                                     // 余额小于最大费率，则与最小费率比价
                                     Map.Entry<String, Integer> entry = getTailByReflection(sortRates);
-                                    if (chargeCard.getCurValue() < entry.getValue()) {
+                                    if ((chargeCert.getCurValue() + chargeCert.getRealValue()) < entry.getValue()) {
                                         // 余额小于最小费率
                                         log.warn("[ReportStartChargeRequest][{}]card({}) insufficient balance(curValue={}), station minimum rate({})",
-                                                deviceNumber, chargeCard.getCardNumber(), chargeCard.getCurValue(), entry.getValue());
+                                                deviceNumber, chargeCert.getCertNumber(), (chargeCert.getCurValue() + chargeCert.getRealValue()), entry.getValue());
                                     }
                                     payment = entry.getValue();
                                 } else {
                                     payment = maxRate.getValue();
                                     log.info("[ReportStartChargeRequest][{}]card({}) preset duration({}) of station maximum rate(duration={}, fee={})",
-                                            deviceNumber, chargeCard.getCardNumber(), startChargeRequest.getPresetChargeTime(),
+                                            deviceNumber, chargeCert.getCertNumber(), startChargeRequest.getPresetChargeTime(),
                                             maxRate.getKey(), maxRate.getValue());
                                 }
                                 feeDetailSnap = devicePort.getFeeDetail();
                             }
                         }
 
-                        chargeOrder.paySetter(payment, payment, ConstantConfig.PAID, ConstantConfig.ONGOING,
+                        int paymentAct = 0;
+                        int virtualPayment = 0;
+                        int paySrc = 0;
+                        // 虚实帐分离
+                        if (payment <= chargeCert.getRealValue()) {
+                            paymentAct = payment;
+                            paySrc = ConstantConfig.PAY_SRC_REAL;
+                        } else if (chargeCert.getRealValue() == 0) {
+                            virtualPayment = payment;
+                            paySrc = ConstantConfig.PAY_SRC_VIRTUAL;
+                        } else {
+                            paymentAct = chargeCert.getRealValue();
+                            virtualPayment = payment - paymentAct;
+                            paySrc = ConstantConfig.PAY_SRC_REAL_AND_VIRTUAL;
+                        }
+
+                        chargeOrder.paySetter(payment, paymentAct, virtualPayment, paySrc, ConstantConfig.PAID,
                                 ConstantConfig.PAY_BY_BALANCE, feeDetailSnap, now);
 
                         // 创建订单
                         chargeOrderMapper.insert(chargeOrder);
-                        log.info("[ReportStartChargeRequest][{}]create new order({}), card({}), user({}), payment({}), sequenceNumber({}), port({})",
-                                deviceNumber, orderNumber, chargeCard.getCardNumber(), userId, payment, sequenceNumber, port);
+                        log.info("[ReportStartChargeRequest][{}]create new order({}), status({}), card({}), user({}), payment({}), sequenceNumber({}), port({})",
+                                deviceNumber, orderNumber, chargeOrder.getOrderStatus(), chargeCert.getCertNumber(), chargeCert.getUserId(), payment, sequenceNumber, port);
 
                         // 扣余额
-                        chargeCard.setCardStatus(ConstantConfig.CARD_OCCUPYING);
-                        int curValue = chargeCard.getCurValue();
-                        chargeCard.setCurValue(curValue - payment);
-                        chargeCardMapper.updateCardStatus(chargeCard);
-                        log.info("[ReportStartChargeRequest][{}]update chargeCard({}), status({}), before pay balance={}, now balance={}",
-                                deviceNumber, chargeCard.getCardNumber(), chargeCard.getCardStatus(), curValue, chargeCard.getCurValue());
+                        chargeCert.setCertStatus(ConstantConfig.CARD_OCCUPYING);
+                        int curValue = chargeCert.getCurValue();
+                        int realValue = chargeCert.getRealValue();
+                        chargeCert.setCurValue(curValue - virtualPayment);
+                        chargeCert.setRealValue(realValue - paymentAct);
+                        chargeCertMapper.updateCertStatus(chargeCert);
+                        log.info("[ReportStartChargeRequest][{}]update chargeCard({}), status({}), before pay balance(real={}, virtual={}), now balance(real={}, virtual={})",
+                                deviceNumber, chargeCert.getCertNumber(), chargeCert.getCertStatus(), realValue, curValue, chargeCert.getRealValue(), chargeCert.getCurValue());
 
                         // 支付流水
                         CardStream cardStream = new CardStream();
-                        cardStream.setter(chargeOrder.getId(), chargeCard.getId(), userId, chargeCard.getBeginedAt(), chargeCard.getFinishedAt(),
-                                ConstantConfig.STREAM_TYPE_PAY, curValue, payment, ConstantConfig.OPERATOR_SRC_CARD, userId);
+                        cardStream.setter(chargeOrder.getId(), chargeCert.getId(), chargeCert.getUserId(), chargeCert.getBeginedAt(), chargeCert.getFinishedAt(),
+                                ConstantConfig.STREAM_TYPE_PAY, curValue, virtualPayment, chargeCert.getCurValue(), realValue, paymentAct, chargeCert.getRealValue(), ConstantConfig.OPERATOR_SRC_CARD, certId);
                         cardStreamMapper.insert(cardStream);
                         log.info("[ReportStartChargeRequest][{}]order({}) payment stream({})", deviceNumber, orderNumber, cardStream.getId());
 
@@ -641,8 +497,8 @@ public class RequestHandler {
 
                     // 更新端口信息
                     CouplerDynamicDetail detail = new CouplerDynamicDetail();
-                    detail.setter(userId, sequenceNumber, orderNumber, chargeCard.getCardNumber());
-                    devicePort.setTryOccupyUserId(userId);
+                    detail.setter(certId, sequenceNumber, orderNumber, chargeCert.getCertNumber());
+                    devicePort.setTryOccupyUserId(certId);
                     devicePort.setStatus(ConstantConfig.CHARGING);
                     devicePort.setDetail(JacksonUtil.bean2Json(detail));
                     devicePortMapper.update(devicePort);
@@ -651,6 +507,7 @@ public class RequestHandler {
                 }
             }
         } else if (status == 2) { // 启动失败
+            kafkaProducer.send(ConstantConfig.DW_CHARGE_REFUND_TOPIC, request.getDeviceNumber(), JacksonUtil.bean2Json(startChargeRequest));
             log.warn("[ReportStartChargeRequest][{}]device({}) start charge failed", deviceNumber, port);
         } else { // 状态值非法
             log.warn("[ReportStartChargeRequest][{}]device({}) invalid start status({})", deviceNumber, port, status);
@@ -663,7 +520,6 @@ public class RequestHandler {
      */
     @Transactional
     public void parseStopChargeRequest(StopChargeRequest request) {
-        int defaultChargeRateHour = serverConfig.getDefaultChargeRateHour();
         StopChargeRequest stopChargeRequest = request;
         Integer status = stopChargeRequest.getStatus();
         String deviceNumber = stopChargeRequest.getDeviceNumber();
@@ -686,28 +542,25 @@ public class RequestHandler {
         }
 
         if (status == 1) { // 停止成功
-            Integer userId = stopChargeRequest.getUserId();
-            Integer userType = stopChargeRequest.getUserType();
-            if (userType == ConstantConfig.USER_TYPE_PREPAID_CARD
-                    || userType == ConstantConfig.USER_TYPE_MONTH_COUNT
-                    || userType == ConstantConfig.USER_TYPE_MONTH_TIME) { // 卡用户
-                String sequenceNumber = SequenceNumberGengerator.getInstance().generate(1000 * (long) stopChargeRequest.getTimeStamp(),
-                        userId, devicePort.getId());
+            Integer certId = stopChargeRequest.getCertId();
+            Integer certType = stopChargeRequest.getCertType();
+            String sequenceNumber = SequenceNumberGengerator.getInstance().generate(1000 * (long) stopChargeRequest.getTimeStamp(),
+                    certId, devicePort.getId());
 
-                ChargeOrder chargeOrder = chargeOrderMapper.findBySequenceNumber(sequenceNumber);
-                if (Objects.isNull(chargeOrder)) {
-                    log.warn("[ReportStopChargeRequest][{}]charge order({}) not exist", deviceNumber, sequenceNumber);
-                    return;
-                }
-
+            ChargeOrder chargeOrder = chargeOrderMapper.findBySequenceNumber(sequenceNumber);
+            if (Objects.isNull(chargeOrder)) {
+                log.warn("[ReportStopChargeRequest][{}]charge order({}) not exist", deviceNumber, sequenceNumber);
+                return;
+            }
+            if (certType != ConstantConfig.CERT_OF_PHONE) { // 卡用户
                 if (!chargeOrder.isOnGoing()) {
                     log.info("[ReportStopChargeRequest][{}]discard the order({}), order({}) status is {}",
                             deviceNumber, sequenceNumber, chargeOrder.getOrderNumber(), chargeOrder.getOrderStatus());
                     return;
                 }
 
-                ChargeCard chargeCard = chargeCardMapper.findByUserId(userId);
-                if (Objects.isNull(chargeCard)) { // 卡不存在
+                ChargeCert chargeCert = chargeCertMapper.findByCertId(certId);
+                if (Objects.isNull(chargeCert)) { // 卡不存在
                     log.warn("[ReportStopChargeRequest][{}]device({}) start charge failed", deviceNumber, port);
                 } else { // 更新充电订单
                     Date date = new Date();
@@ -720,8 +573,8 @@ public class RequestHandler {
                     Integer reason = stopChargeRequest.getReason();
                     chargeOrder.setChargeFinishReason(ReasonCode.getType(reason));
 
-                    if (userType == ConstantConfig.USER_TYPE_MONTH_COUNT || userType == ConstantConfig.USER_TYPE_MONTH_TIME) {
-                        if (userType == ConstantConfig.USER_TYPE_MONTH_TIME) {
+                    if (certType == ConstantConfig.CARD_TYPE_OF_MONTH_COUNT || certType == ConstantConfig.CARD_TYPE_OF_MONTH_TIME) {
+                        if (certType == ConstantConfig.CARD_TYPE_OF_MONTH_TIME) {
                             chargeOrder.setPayType(ConstantConfig.PAY_BY_MONTHLY_TIME_CARD);
                         } else {
                             chargeOrder.setPayType(ConstantConfig.PAY_BY_MONTHLY_COUNT_CARD);
@@ -734,103 +587,54 @@ public class RequestHandler {
 
                     chargeOrderMapper.update(chargeOrder);
                     log.info("[ReportStopChargeRequest][{}]update order({}), user({}), sequenceNumber({}), port({}), duration({})",
-                            deviceNumber, chargeOrder.getOrderNumber(), userId, sequenceNumber, port, chargeOrder.getDuration());
+                            deviceNumber, chargeOrder.getOrderNumber(), certId, sequenceNumber, port, chargeOrder.getDuration());
 
-                    // 判断是否需要退款
-                    if (userType == ConstantConfig.USER_TYPE_PREPAID_CARD && chargeOrder.getPayment() > 0) {
-                        boolean refund = false;
-                        int actPayment = 0;
-
-                        // 如果实际充电时长小于站点费率设置的最低费率，产生退款
-                        String feeDetail = chargeOrder.getFeeDetailSnap();
-                        if (StringUtils.isBlank(feeDetail)) {
-                            if (actualChargeTime < defaultChargeRateHour) {
-                                refund = true;
-                                actPayment = serverConfig.getDefaultChargeRateFee();
-                                log.info("[ReportStopChargeRequest][{}]order({}) need refund, actChargeTime({}), minRateTime({})",
-                                        deviceNumber, chargeOrder.getOrderNumber(), actualChargeTime, defaultChargeRateHour);
+                    // 包时月卡 包时次卡需要扣费
+                    if (ConstantConfig.CARD_TYPE_OF_MONTH_COUNT == chargeCert.getType() ||
+                            ConstantConfig.CARD_TYPE_OF_MONTH_TIME == chargeCert.getType()) {
+                        long startedAt = 0L;
+                        long finishAt = 0L;
+                        if (StringUtils.isNotBlank(chargeOrder.getStartedAt())) {
+                            try {
+                                startedAt = simpleDateFormat.parse(chargeOrder.getStartedAt()).getTime();
+                                finishAt = startedAt + chargeOrder.getDuration() * 1000;
+                            } catch (Exception e) {
+                                log.warn("[CheckInRequest][{}]parse order({}) start time failed, ",
+                                        deviceNumber, chargeOrder.getOrderNumber(), e.getMessage(), e);
                             }
-                        } else {
-                            TypeReference<Map<String, Integer>> type = new TypeReference<Map<String, Integer>>() {
-                            };
-                            Map<String, Integer> rates = (Map<String, Integer>) JacksonUtil.json2Map(feeDetail, type);
-                            if (Objects.isNull(rates) || rates.isEmpty()) {
-                                if (actualChargeTime < defaultChargeRateHour) {
-                                    refund = true;
-                                    actPayment = serverConfig.getDefaultChargeRateFee();
-                                    log.info("[ReportStopChargeRequest][{}]order({}) need refund, actChargeTime({}), minRateTime({})",
-                                            deviceNumber, chargeOrder.getOrderNumber(), actualChargeTime, defaultChargeRateHour);
-                                }
+                        }
+
+                        if (ConstantConfig.CARD_TYPE_OF_MONTH_TIME == chargeCert.getType()) {
+                            int curValue = 0;
+                            DateTimeFormatter df = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                            log.info("[ReportStopChargeRequest][{}]order({}) startedAt={}, finishedAt={}",
+                                    deviceNumber, chargeOrder.getOrderNumber(), chargeOrder.getStartedAt(), chargeOrder.getFinishedAt());
+                            LocalDateTime nowDate = LocalDateTime.now();
+                            LocalDateTime startDate = LocalDateTime.parse(chargeOrder.getStartedAt().substring(0, 19), df);
+                            LocalDateTime finishDate = LocalDateTime.parse(chargeOrder.getFinishedAt().substring(0, 19), df);
+
+                            if (startDate.toLocalDate().isBefore(nowDate.toLocalDate()) && finishDate.toLocalDate().isBefore(nowDate.toLocalDate())) {
+                                curValue = chargeCert.getCurValue();
+                            } else if (startDate.toLocalDate().isBefore(nowDate.toLocalDate()) && !finishDate.toLocalDate().isBefore(nowDate.toLocalDate())) {
+                                long current = System.currentTimeMillis();
+                                long zero = current / (1000 * 3600 * 24) * (1000 * 3600 * 24) - TimeZone.getDefault().getRawOffset();
+                                curValue = chargeCert.getCurValue() - (int) ((finishAt - zero) / 1000) / 60;
                             } else {
-                                LinkedHashMap<String, Integer> sortRates = (LinkedHashMap<String, Integer>) MapUtil.sortByValueAscending(rates);
-                                Map.Entry<String, Integer> minRate = sortRates.entrySet().iterator().next();
-                                if (actualChargeTime < Integer.parseInt(minRate.getKey())) {
-                                    refund = true;
-                                    actPayment = minRate.getValue();
-                                    log.info("[ReportStopChargeRequest][{}]order({}) need refund, actChargeTime({}), minRateTime({})",
-                                            deviceNumber, chargeOrder.getOrderNumber(), actualChargeTime, minRate.getKey());
-                                }
+                                curValue = chargeCert.getCurValue() - chargeOrder.getDuration() / 60;
                             }
+
+                            // 更新充电卡信息
+                            chargeCert.setCurValue(curValue > 0 ? curValue : 0);
                         }
-
-                        if (refund) {
-                            // 实际退款
-                            int refundAct = chargeOrder.getPayment() - actPayment;
-                            int orderType = ConstantConfig.ORDER_TYPE_ADJUST;
-                            if (reason != ConstantConfig.FINISH_CHARGE_NORMAL
-                                    && reason != ConstantConfig.FINISH_CHARGE_USER
-                                    && reason != ConstantConfig.FINISH_CHARGE_AUTO) {
-                                orderType = ConstantConfig.ORDER_TYPE_EXCEPTION;
-                            }
-                            chargeOrder.refundSetter(actPayment, refundAct, orderType, ConstantConfig.REFUND, ConstantConfig.FINISH_SUCCESS, now);
-
-                            chargeOrderMapper.refundUpdate(chargeOrder);
-                            log.info("[ReportStopChargeRequest][{}]order({}) refund update, refundAct({}), actPayment({})",
-                                    deviceNumber, chargeOrder.getOrderNumber(), refundAct, actPayment);
-
-                            // 退款流水
-                            int curValue = chargeCard.getCurValue();
-                            CardStream cardStream = new CardStream();
-                            cardStream.setter(chargeOrder.getId(), chargeCard.getId(), userId, chargeCard.getBeginedAt(), chargeCard.getFinishedAt(),
-                                    ConstantConfig.STREAM_TYPE_REFOUND, curValue, refundAct, ConstantConfig.OPERATOR_SRC_CARD, userId);
-
-                            cardStreamMapper.insert(cardStream);
-                            log.info("[ReportStopChargeRequest][{}]order({}) refund stream({})",
-                                    deviceNumber, chargeOrder.getOrderNumber(), cardStream.getId());
-
-                            // 更正卡余额
-                            chargeCard.setCurValue(curValue + refundAct);
-
-                            // 设置订单退款流水ID
-                            chargeOrder.setRefundStreamId(cardStream.getId());
-                            chargeOrderMapper.updateRefundStream(chargeOrder.getSequenceNumber(), chargeOrder.getRefundStreamId());
-                        }
+                        chargeCert.setCertStatus(ConstantConfig.CARD_AVAILABLE);
+                        chargeCertMapper.updateCertStatus(chargeCert);
+                        log.info("[ReportStopChargeRequest][{}]update chargeCard({}), status({}), curValue({})",
+                                deviceNumber, chargeCert.getCertNumber(), chargeCert.getCertStatus(), chargeCert.getCurValue());
                     }
-
-                    if (userType == ConstantConfig.USER_TYPE_MONTH_TIME) {
-                        int curValue = 0;
-                        DateTimeFormatter df = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-                        log.info("[ReportStopChargeRequest][{}]order({}) startedAt={}, finishedAt={}",
-                                deviceNumber, chargeOrder.getOrderNumber(), chargeOrder.getStartedAt(), chargeOrder.getFinishedAt());
-                        LocalDateTime dateTime = LocalDateTime.parse(chargeOrder.getStartedAt().substring(0, 19), df);
-                        LocalDateTime current = LocalDateTime.parse(chargeOrder.getFinishedAt().substring(0, 19), df);
-                        if (dateTime.toLocalDate().isBefore(current.toLocalDate())) {
-                            curValue = chargeCard.getCurValue() - (current.getHour() * 60 + current.getMinute());
-                        } else {
-                            curValue = chargeCard.getCurValue() - actualChargeTime / 60;
-                        }
-                        // 更新充电卡信息
-                        chargeCard.setCurValue(curValue > 0 ? curValue : 0);
-                    }
-                    chargeCard.setCardStatus(ConstantConfig.CARD_AVAILABLE);
-                    chargeCardMapper.updateCardStatus(chargeCard);
-                    log.info("[ReportStopChargeRequest][{}]update chargeCard({}), status({}), curValue({})",
-                            deviceNumber, chargeCard.getCardNumber(), chargeCard.getCardStatus(), chargeCard.getCurValue());
 
                     // 更新端口信息
                     CouplerDynamicDetail detail = new CouplerDynamicDetail();
                     devicePort.setTryOccupyUserId(0);
-                    devicePort.setStatus(ConstantConfig.AVAILABLE);
                     devicePort.setDetail(JacksonUtil.bean2Json(detail));
                     devicePortMapper.update(devicePort);
                     log.info("[ReportStopChargeRequest][{}]update device({}), status({}), occupyUserId({})",
@@ -838,6 +642,14 @@ public class RequestHandler {
                 }
             }
 
+            // 判断是否需要退款
+            kafkaProducer.send(ConstantConfig.DW_CHARGE_REFUND_TOPIC, request.getDeviceNumber(), JacksonUtil.bean2Json(stopChargeRequest));
+
+            /*if (certType == ConstantConfig.CERT_OF_PHONE) {
+                // 充电结束通知
+                String result = HttpRequestUtil.notifyUserRequest(chargeOrder.getOrderNumber(), ReasonUserCode.getType(stopChargeRequest.getReason()), ConstantConfig.NOTIFY_USER_FINISHED, serverConfig.getUserPushUrl());
+                log.info("[ReportStopChargeRequest][notifyUserRequest]result: {}", result);
+            }*/
         } else if (status == 2) { // 停止失败
             log.warn("[ReportStopChargeRequest][{}]device({}) stop charge failed", deviceNumber, port);
         } else { // 状态值非法

@@ -16,6 +16,8 @@ public class ChargeOrder {
 
     private Integer userId;
 
+    private Long certId;
+
     private  Integer portId;
 
     private Integer deviceId;
@@ -46,19 +48,34 @@ public class ChargeOrder {
     private Integer durationPlan;
 
     /**
+     * 扣款来源（1实账2虚账3虚实结合）
+     */
+    private Integer paySrc;
+
+    /**
      * 预收费用
      */
     private Integer payment;
 
     /**
-     * 实际支付费用
+     * 实帐支付费用
      */
     private Integer paymentAct;
 
     /**
-     * 退款金额
+     * 虚拟账户支付费用
+     */
+    private Integer virtualPayment;
+
+    /**
+     * 退款总金额
      */
     private Integer refundAct;
+
+    /**
+     * 虚账退款金额
+     */
+    private Integer virtualRefund;
 
     /**
      * 订单类型：默认1正常2异常3校正
@@ -110,9 +127,10 @@ public class ChargeOrder {
      */
     private String refundOrderAt;
 
-    public void startSetter(int portId, int deviceId, int stationId, int userId, String startDetail, String sequenceNumber, String orderNumber, int presetChargeTime) {
+    public void startSetter(int portId, int deviceId, int stationId, long certId, int userId, String startDetail, String sequenceNumber, String orderNumber, int presetChargeTime) {
         this.setOrderNumber(orderNumber);
         this.setSequenceNumber(sequenceNumber);
+        this.setCertId(certId);
         this.setUserId(userId);
         this.setPortId(portId);
         this.setDeviceId(deviceId);
@@ -123,37 +141,16 @@ public class ChargeOrder {
         this.setStartType(ConstantConfig.START_BY_CARD);
     }
 
-    public void paySetter(int payment, int paymentAct, int payStatus, int orderStatus, int payType, String feeDetailSnap, String payedOrderAt) {
+    public void paySetter(int payment, int paymentAct, int virtualPayment, int paySrc, int payStatus, int payType, String feeDetailSnap, String payedOrderAt) {
         this.setPayment(payment);
         this.setPaymentAct(paymentAct);
+        this.setVirtualPayment(virtualPayment);
+        this.setPaySrc(paySrc);
         this.setPayStatus(payStatus);
-        this.setOrderStatus(orderStatus);
         this.setPayType(payType);
         this.setFeeDetailSnap(feeDetailSnap);
+        this.setOrderStatus(ConstantConfig.ONGOING);
         this.setPayedOrderAt(payedOrderAt);
-    }
-
-    public void payStreamUpdate(long payStreamId) {
-        this.setPayStreamId(payStreamId);
-    }
-
-    public void payActUpdate(int duration, int paymentAct, String chargeFinishReason) {
-        this.setDuration(duration);
-        this.setPaymentAct(paymentAct);
-        this.setChargeFinishReason(chargeFinishReason);
-    }
-
-    public void refundSetter(int paymentAct, int refundAct, int orderType, int payStatus, int orderStatus, String refundOrderAt) {
-        this.setPaymentAct(paymentAct);
-        this.setRefundAct(refundAct);
-        this.setOrderType(orderType);
-        this.setPayStatus(payStatus);
-        this.setOrderStatus(orderStatus);
-        this.setRefundOrderAt(refundOrderAt);
-    }
-
-    public void refundStreamUpdate(long refundStreamId) {
-        this.setRefundStreamId(refundStreamId);
     }
 
     /**

@@ -26,4 +26,7 @@ public class ServerConfig {
 
     @Value("${charge.rate.default.detail}")
     public String defaultFeeDetailSnap;
+
+    @Value("${push.user.url}")
+    public String userPushUrl;
 }

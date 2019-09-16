@@ -21,7 +21,7 @@ public interface DevicePortMapper {
 
     DevicePort findByPortNumberAvailable(@Param("portNumber") String portNumber);
 
-    DevicePort findByOccupyUserId(@Param("userId") Integer userId);
+    DevicePort findByOccupyUserId(@Param("certId") int certId);
 
     void update(DevicePort devicePort);
 }

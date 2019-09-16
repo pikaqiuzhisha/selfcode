@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.chargedot.refund.mapper.DevicePortMapper">
+
+    <!--findLikeDeviceNumberAvailable-->
+    <select id="findLikeDeviceNumberAvailable" parameterType="java.lang.String" resultType="com.chargedot.refund.model.DevicePort">
+      SELECT
+        p.id AS id,
+        p.port_number AS portNumber,
+        p.port_name AS portName,
+        p.station_id AS stationId,
+        p.device_id AS deviceId,
+        p.try_occupy_user_id AS tryOccupyUserId,
+        p.status AS status,
+        p.detail AS detail,
+        s.fee_detail AS feeDetail
+      FROM dw_device_port AS p LEFT JOIN dw_station AS s ON s.id=p.station_id
+      WHERE p.port_number LIKE '%${deviceNumber}%' AND p.status=2 AND p.is_del=0 AND s.is_del=0 LIMIT 1
+    </select>
+
+    <!--findLikeDeviceNumber-->
+    <select id="findLikeDeviceNumber" parameterType="java.lang.String" resultType="com.chargedot.refund.model.DevicePort">
+      SELECT
+        p.id AS id,
+        p.port_number AS portNumber,
+        p.port_name AS portName,
+        p.station_id AS stationId,
+        p.device_id AS deviceId,
+        p.try_occupy_user_id AS tryOccupyUserId,
+        p.status AS status,
+        p.detail AS detail,
+        s.fee_detail AS feeDetail
+      FROM dw_device_port AS p LEFT JOIN dw_station AS s ON s.id=p.station_id
+      WHERE p.port_number LIKE '%${deviceNumber}%' AND p.is_del=0 AND s.is_del=0
+    </select>
+
+    <!--findByPortNumber-->
+    <select id="findByPortNumber" parameterType="java.lang.String" resultType="com.chargedot.refund.model.DevicePort">
+      SELECT
+        p.id AS id,
+        p.port_number AS portNumber,
+        p.port_name AS portName,
+        p.station_id AS stationId,
+        p.device_id AS deviceId,
+        p.try_occupy_user_id AS tryOccupyUserId,
+        p.status AS status,
+        p.detail AS detail,
+        s.fee_detail AS feeDetail
+      FROM dw_device_port AS p LEFT JOIN dw_station AS s ON s.id=p.station_id
+      WHERE p.port_number=#{portNumber} AND p.status!=6 AND p.is_del=0 AND s.is_del=0 LIMIT 1
+    </select>
+
+    <!--findByPortNumberAvailable-->
+    <select id="findByPortNumberAvailable" parameterType="java.lang.String" resultType="com.chargedot.refund.model.DevicePort">
+      SELECT
+        p.id AS id,
+        p.port_number AS portNumber,
+        p.port_name AS portName,
+        p.station_id AS stationId,
+        p.device_id AS deviceId,
+        p.try_occupy_user_id AS tryOccupyUserId,
+        p.status AS status,
+        p.detail AS detail,
+        s.fee_detail AS feeDetail
+      FROM dw_device_port AS p LEFT JOIN dw_station AS s ON s.id=p.station_id
+      WHERE p.port_number=#{portNumber} AND p.status=2 AND p.is_del=0 AND s.is_del=0 LIMIT 1
+    </select>
+
+    <!--findByOccupyUserId-->
+    <select id="findByOccupyUserId" parameterType="java.lang.Long" resultType="com.chargedot.refund.model.DevicePort">
+        SELECT
+        p.id AS id,
+        p.port_number AS portNumber,
+        p.port_name AS portName,
+        p.station_id AS stationId,
+        p.device_id AS deviceId,
+        p.try_occupy_user_id AS tryOccupyUserId,
+        p.status AS status,
+        p.detail AS detail,
+        s.fee_detail AS feeDetail
+      FROM dw_device_port AS p LEFT JOIN dw_station AS s ON s.id=p.station_id
+      WHERE p.try_occupy_user_id=#{userId} AND p.is_del=0 AND s.is_del=0 LIMIT 1
+    </select>
+
+    <!--update-->
+    <update id="update" parameterType="com.chargedot.refund.model.DevicePort">
+        UPDATE dw_device_port
+        <set>
+            <if test="tryOccupyUserId != null">
+                try_occupy_user_id=#{tryOccupyUserId},
+            </if>
+            <if test="status != null">
+                status=#{status}
+            </if>
+            <if test="detail != null">
+                ,detail=#{detail}
+            </if>
+        </set>
+        WHERE port_number=#{portNumber} AND device_id=#{deviceId} AND is_del=0
+    </update>
+</mapper>

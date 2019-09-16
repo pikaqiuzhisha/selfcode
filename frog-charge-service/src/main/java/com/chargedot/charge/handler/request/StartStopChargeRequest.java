@@ -1,5 +1,6 @@
 package com.chargedot.charge.handler.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 /**
@@ -10,33 +11,36 @@ import lombok.Data;
 public class StartStopChargeRequest extends Request {
 
     /**
-     * 设备编号
-     */
-    private String deviceNumber;
-
-    /**
      * 设备端口号
      */
+    @JsonProperty("Port")
     private String port;
 
     /**
      * 用户ID
      */
-    private Integer userId;
+    @JsonProperty("CertId")
+    private Integer certId;
+
+    @JsonProperty("Type")
+    private Integer type;
 
     /**
-     * 用户类型
+     * 凭证类型
      */
-    private Integer userType;
+    @JsonProperty("CertType")
+    private Integer certType;
 
     /**
      * 充电流水号对应时间戳（秒数值）
      */
+    @JsonProperty("TimeStamp")
     private Integer timeStamp;
 
     /**
      * 启停状态，1-成功，2-失败
      */
+    @JsonProperty("Status")
     private Integer status;
 
     /**
@@ -47,15 +51,17 @@ public class StartStopChargeRequest extends Request {
      *   18-无权限，19-拒绝服务，
      *   80-系统错误，81-执行失败
      */
+    @JsonProperty("Reason")
     private Integer reason;
 
-    public void setter(String deviceNumber, String port, int status, int reason, int userId, int timeStamp, Integer userType) {
+    public void setter(String deviceNumber, String port, int type, int status, int reason, int userId, int timeStamp, Integer certTye) {
         this.setDeviceNumber(deviceNumber);
         this.setPort(port);
         this.setReason(reason);
+        this.setType(type);
         this.setStatus(status);
         this.setTimeStamp(timeStamp);
-        this.setUserId(userId);
-        this.setUserType(userType);
+        this.setCertId(userId);
+        this.setCertType(certTye);
     }
 }

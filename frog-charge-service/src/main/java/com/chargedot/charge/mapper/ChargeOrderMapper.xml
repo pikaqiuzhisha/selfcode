@@ -8,6 +8,7 @@
         SELECT
           id AS id,
           order_number AS orderNumber,
+          cert_id AS certId,
           user_id AS userId,
           start_detail AS startDetail,
           port_id AS portId,
@@ -21,6 +22,8 @@
           duration_plan AS durationPlan,
           payment AS payment,
           payment_act AS paymentAct,
+          payment_virtual AS virtualPayment,
+          pay_src AS paySrc,
           order_type AS orderType,
           pay_status AS payStatus,
           order_status AS orderStatus,
@@ -34,6 +37,7 @@
         SELECT
           id AS id,
           order_number AS orderNumber,
+          cert_id AS certId,
           user_id AS userId,
           start_detail AS startDetail,
           port_id AS portId,
@@ -47,6 +51,8 @@
           duration_plan AS durationPlan,
           payment AS payment,
           payment_act AS paymentAct,
+          payment_virtual AS virtualPayment,
+          pay_src AS paySrc,
           order_type AS orderType,
           pay_status AS payStatus,
           order_status AS orderStatus,
@@ -59,9 +65,9 @@
     <!--insert-->
     <insert id="insert" parameterType="com.chargedot.charge.model.ChargeOrder" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
         INSERT INTO dw_charge_order
-          (id, order_number, sequence_number, start_detail, user_id, port_id, device_id, station_id, start_type, duration_plan, order_status, payment, payment_act, pay_status, pay_type, fee_detail_snap)
+          (id, order_number, sequence_number, start_detail, cert_id, user_id, port_id, device_id, station_id, start_type, duration_plan, order_status, payment, payment_act, payment_virtual, pay_src, pay_status, pay_type, fee_detail_snap)
         VALUES
-          (NULL, #{orderNumber}, #{sequenceNumber}, #{startDetail}, #{userId}, #{portId}, #{deviceId}, #{stationId}, #{startType}, #{durationPlan}, #{orderStatus}, #{payment}, #{paymentAct}, #{payStatus}, #{payType}, #{feeDetailSnap})
+          (NULL, #{orderNumber}, #{sequenceNumber}, #{startDetail}, #{certId}, #{userId}, #{portId}, #{deviceId}, #{stationId}, #{startType}, #{durationPlan}, #{orderStatus}, #{payment}, #{paymentAct}, #{virtualPayment}, #{paySrc}, #{payStatus}, #{payType}, #{feeDetailSnap})
     </insert>
 
     <!--update-->
@@ -114,11 +120,20 @@
     <update id="refundUpdate" parameterType="com.chargedot.charge.model.ChargeOrder">
         UPDATE dw_charge_order
         <set>
+            <if test="payment != null">
+                payment=#{payment},
+            </if>
             <if test="paymentAct != null">
                 payment_act=#{paymentAct},
             </if>
             <if test="refundAct != null">
                 refund_act=#{refundAct},
+            </if>
+            <if test="virtualPayment != null">
+                payment_virtual=#{virtualPayment},
+            </if>
+            <if test="virtualRefund != null">
+                refund_virtual=#{virtualRefund},
             </if>
             <if test="orderType != null">
                 order_type=#{orderType},

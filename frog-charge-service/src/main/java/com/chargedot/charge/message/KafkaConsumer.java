@@ -1,7 +1,6 @@
 package com.chargedot.charge.message;
 
 import com.chargedot.charge.config.ConstantConfig;
-import com.chargedot.charge.config.CustomConfig;
 import com.chargedot.charge.service.FaultService;
 import com.chargedot.charge.util.JsonValidatorUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -10,7 +9,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
 
 import java.text.SimpleDateFormat;
 import java.util.concurrent.ExecutorService;
@@ -31,14 +29,10 @@ public class KafkaConsumer {
     private FaultService faultService;
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
-    @Autowired
-    private RestTemplate restTemplate;
-    @Autowired
-    private CustomConfig config;
 
-    private ExecutorService faultThreadPool = Executors.newFixedThreadPool(1);
+    private ExecutorService faultHandleThreadPool = Executors.newFixedThreadPool(1);
 
-    private ExecutorService refundThreadPool = Executors.newFixedThreadPool(3);
+    private ExecutorService chargeControlThreadPool = Executors.newFixedThreadPool(3);
 
     @KafkaListener(topics = {ConstantConfig.DWD_ERROR_REQ,
             ConstantConfig.DWD_START_STOP_RESULT_REQ,
@@ -72,10 +66,11 @@ public class KafkaConsumer {
         }
 
         if (ConstantConfig.DWD_ERROR_REQ.equals(topic)) {
-            faultThreadPool.execute(new SaveErrorInfo(key, message, faultService, stringRedisTemplate));
+            faultHandleThreadPool.execute(new SaveErrorInfo(key, message, faultService, stringRedisTemplate));
         } else if (ConstantConfig.DWD_START_STOP_RESULT_REQ.equals(topic)
-                || ConstantConfig.DWD_CHECK_IN_REQ.equals(topic) || ConstantConfig.D2S_REQ_TOPIC.equals(topic)) {
-            refundThreadPool.execute(new MessageHandler(key, message, restTemplate, config));
+                || ConstantConfig.DWD_CHECK_IN_REQ.equals(topic)
+                || ConstantConfig.D2S_REQ_TOPIC.equals(topic)) {
+            chargeControlThreadPool.execute(new MessageHandler(key, message));
         }
     }
 

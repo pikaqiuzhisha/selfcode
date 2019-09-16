@@ -5,7 +5,9 @@
 
     <insert id="insert" parameterType="com.chargedot.charge.model.CardStream" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
         INSERT INTO dw_card_stream
-          (id, order_id, card_id, user_id, begined_at, finished_at, stream_type, pre_value, change_value, operator_src, operator_id)
-        VALUES (NULL, #{orderId}, #{cardId}, #{userId}, #{beginedAt}, #{finishedAt}, #{streamType}, #{preValue}, #{changeValue}, #{operatorSrc}, #{operatorId})
+          (id, order_id, card_id, user_id, begined_at, finished_at, stream_type, pre_value, change_value,
+          cur_value, real_pre_value, real_change_value, cur_real_value, operator_src, operator_id)
+        VALUES (NULL, #{orderId}, #{cardId}, #{userId}, #{beginedAt}, #{finishedAt}, #{streamType}, #{preValue}, #{changeValue},
+        #{curValue}, #{realPreValue}, #{realChangeValue}, #{curRealValue}, #{operatorSrc}, #{operatorId})
     </insert>
 </mapper>
