@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.chargedot.frogimportservice.mapper.DWCertMapper">
+    <!--批量导入凭证号信息-->
+    <insert id="importDWCertData">
+        insert into dw_cert (cert_number,enterprise_id,type,finished_at)
+        values
+        <foreach item="dwCert" index="index" collection="dwCertList" separator=",">
+            (#{dwCert.certNumber},#{dwCert.enterpriseId},#{dwCert.type},#{dwCert.finishedAt})
+        </foreach>
+
+    </insert>
+
+    <!--查询凭证号是否有重复-->
+    <select id="selectDWCertNumberCount" resultType="int">
+        select count(cert_number) from dw_cert where cert_number = #{certNumber}
+    </select>
+</mapper>

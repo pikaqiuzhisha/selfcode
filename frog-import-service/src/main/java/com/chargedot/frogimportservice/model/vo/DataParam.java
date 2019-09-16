@@ -1,6 +1,6 @@
 package com.chargedot.frogimportservice.model.vo;
 
-import com.chargedot.frogimportservice.model.ChargeCard;
+import com.chargedot.frogimportservice.model.DWCert;
 import lombok.Data;
 
 import java.util.List;
@@ -10,7 +10,7 @@ public class DataParam {
     /**
      * 卡号集合
      */
-    private List<ChargeCard> chargeCardList;
+    private List<DWCert> dwCertList;
 
     /**
      * 卡类型
@@ -27,12 +27,12 @@ public class DataParam {
      */
     private  String finishedAt;
 
-    public List<ChargeCard> getChargeCardList() {
-        return chargeCardList;
+    public List<DWCert> getDwCertList() {
+        return dwCertList;
     }
 
-    public void setChargeCardList(List<ChargeCard> chargeCardList) {
-        this.chargeCardList = chargeCardList;
+    public void setDwCertList(List<DWCert> dwCertList) {
+        this.dwCertList = dwCertList;
     }
 
     public Integer getType() {
