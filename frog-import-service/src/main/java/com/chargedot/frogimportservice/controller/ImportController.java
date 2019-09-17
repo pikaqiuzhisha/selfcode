@@ -60,16 +60,16 @@ public class ImportController {
             return new ResponseEntity<CommonResult>(CommonResult.buildResult(4003), HttpStatus.OK);
         } else {
             log.debug("req：{}", dwCertList);
-            //存储重复的卡号
+            //存储重复的凭证号
             List<DWCert> repeatCertList = new ArrayList<>();
-            //存储唯一的卡号
+            //存储唯一的凭证号
             List<DWCert> nonRepeatCertList = new ArrayList<>();
 
             if (log.isDebugEnabled()) {
                 log.debug("card条数：{}", dwCertList.size());
             }
             log.info("开始时间：{}", new Date());
-            //定义变量,来校验录卡是否成功
+            //定义变量,来校验录凭证号是否成功
             int isRight = 0;
             //标识重复的个数
             int repeatCount = 0;
@@ -88,8 +88,19 @@ public class ImportController {
                         repeatCertList.add(dwCert);
                         repeatCount++;
                     } else {
-                        nonRepeatCertList.add(dwCert);
-                        noRepeatCount++;
+                        //校验集合无数据时，第一次查出数据库没有这条凭证号，直接添加到不重复集合中
+                        if(nonRepeatCertList.size() == 0){
+                            nonRepeatCertList.add(dwCert);
+                            noRepeatCount++;
+                        }else{
+                            //之后查出数据库没有这条凭证号，需要循环不重复凭证号集合，校验集合中是否存在这条凭证号
+                            for(int i = 0; i < nonRepeatCertList.size(); i++){
+                                if(!dwCert.getCertNumber().equals(nonRepeatCertList.get(i).getCertNumber())){
+                                    nonRepeatCertList.add(dwCert);
+                                    noRepeatCount++;
+                                }
+                            }
+                        }
                     }
                 }
                 log.info("结束时间：{}", new Date());
@@ -103,11 +114,11 @@ public class ImportController {
                 return new ResponseEntity<CommonResult>(CommonResult.buildErrorResult(1, "collection has no data.", null), HttpStatus.OK);
             }
 
-            //定义一个数组，来接收卡号
+            //定义一个数组，来接收凭证号
             String[] resultCertNumber = null;
             //定义一个对象，来接收JSON转化的数组
             Object cert = null;
-            //校验卡号是否有重复的
+            //校验凭证号是否有重复的
             if (dwCertList.size() == repeatCount) {
                 resultCertNumber = new String[repeatCertList.size()];
                 for (int i = 0; i < repeatCertList.size(); i++) {
