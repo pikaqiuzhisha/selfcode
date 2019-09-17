@@ -61,7 +61,7 @@
           charge_finish_reason AS chargeFinishReason,
           fee_detail_snap AS feeDetailSnap,
           pay_type AS payType
-        FROM dw_charge_order WHERE port_id=#{portId} AND order_status in (1, 2, 5) AND is_del=0 ORDER BY id DESC LIMIT 1
+        FROM dw_charge_order WHERE port_id=#{portId} AND is_del=0 ORDER BY id DESC LIMIT 1
     </select>
 
     <!--insert-->

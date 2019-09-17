@@ -6,8 +6,8 @@
     <insert id="insert" parameterType="com.chargedot.refund.model.ChargeStream" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
         INSERT INTO dw_card_stream
           (id, order_id, card_id, user_id, begined_at, finished_at, stream_type, real_balance, pre_value, change_value,
-          cur_value, real_pre_value, real_change_value, cur_real_value, operator_src, operator_id)
+          cur_value, real_pre_value, real_change_value, cur_real_value, operator_src, operator_id, remarks)
         VALUES (NULL, #{orderId}, #{cardId}, #{userId}, #{beginedAt}, #{finishedAt}, #{streamType}, #{realBalance}, #{preValue}, #{changeValue},
-        #{curValue}, #{realPreValue}, #{realChangeValue}, #{curRealValue}, #{operatorSrc}, #{operatorId})
+        #{curValue}, #{realPreValue}, #{realChangeValue}, #{curRealValue}, #{operatorSrc}, #{operatorId}, #{remarks})
     </insert>
 </mapper>

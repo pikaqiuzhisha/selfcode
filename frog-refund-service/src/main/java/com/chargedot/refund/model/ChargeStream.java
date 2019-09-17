@@ -47,8 +47,10 @@ public class ChargeStream {
 
     private Integer operatorId;
 
+    private String remarks;
+
     public void setter(int orderId, long cardId, int userId, String beginedAt, String finishedAt, int streamType, int realBalance, int preValue, int changeValue, int curValue,
-                       int realPreValue, int realChangeValue, int curRealValue, int operatorSrc, int operatorId) {
+                       int realPreValue, int realChangeValue, int curRealValue, int operatorSrc, int operatorId, String remarks) {
         this.setOrderId(orderId);
         this.setCardId(cardId);
         this.setUserId(userId);
@@ -64,5 +66,6 @@ public class ChargeStream {
         this.setCurRealValue(curRealValue);
         this.setOperatorSrc(operatorSrc);
         this.setOperatorId(operatorId);
+        this.setRemarks(remarks);
     }
 }

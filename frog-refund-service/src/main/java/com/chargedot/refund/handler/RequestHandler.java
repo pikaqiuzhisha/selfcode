@@ -147,7 +147,10 @@ public class RequestHandler {
                     // 查找最近一条进行中的订单，判断是否需要退款
                     ChargeOrder chargeOrder = chargeOrderMapper.findByPortIdLast(devicePort.getId());
 
-                    if (Objects.nonNull(chargeOrder)) {
+                    if (Objects.nonNull(chargeOrder)
+                            && chargeOrder.getPayStatus() != ConstantConfig.REFUND
+                            && chargeOrder.getPayStatus() != ConstantConfig.INVOICED
+                            && chargeOrder.getPayStatus() != ConstantConfig.UNREFUND) {
                         long certId = chargeOrder.getCertId();
                         ChargeCert chargeCert = chargeCertMapper.findByCertId(certId);
                         if (Objects.isNull(chargeCert)) {
@@ -161,7 +164,7 @@ public class RequestHandler {
                             boolean refundAll = false;
                             int actPayment = 0;
 
-                            if (chargeOrder.getOrderStatus() == 1 || chargeOrder.getOrderStatus() == 5) {
+                            if (chargeOrder.getOrderStatus() == ConstantConfig.CREATED || chargeOrder.getOrderStatus() == ConstantConfig.UNCHARGEING) {
                                 refund = true;
                                 refundAll = true;
                             } else {
@@ -261,7 +264,7 @@ public class RequestHandler {
                                 }
                                 chargeStream.setter(chargeOrder.getId(), chargeCert.getId(), chargeCert.getUserId(), chargeCert.getBeginedAt(), chargeCert.getFinishedAt(),
                                         ConstantConfig.STREAM_TYPE_REFOUND, refundAct, chargeCert.getCurValue(), virtualRefund, curValue, chargeCert.getRealValue(), refundAct, curRealValue,
-                                        operatorSrc, chargeCert.getId().intValue());
+                                        operatorSrc, chargeCert.getId().intValue(), ReasonUserCode.DEVICE_RESTART.getDescribe());
 
                                 log.info("chargeStream={}", chargeStream);
                                 chargeStreamMapper.insert(chargeStream);
@@ -384,7 +387,7 @@ public class RequestHandler {
         }
 
         int status = startChargeRequest.getStatus();
-        if (status == 2) { // 启动失败 全部退款
+        if (status == ConstantConfig.FAILURE) { // 启动失败 全部退款
             String sequenceNumber = SequenceNumberGengerator.getInstance().generate(1000 * (long) startChargeRequest.getTimeStamp(),
                     startChargeRequest.getCertId(), devicePort.getId());
 
@@ -401,7 +404,11 @@ public class RequestHandler {
                 return;
             }
 
-            if (chargeOrder.getPayment() > 0 && chargeCert.getType() != ConstantConfig.CERT_OF_PHONE) {
+            if (chargeOrder.getPayment() > 0
+                    && (chargeCert.getType() == ConstantConfig.CERT_OF_PHONE || chargeCert.getType() == ConstantConfig.CERT_CART_OF_BALANCE)
+                    && chargeOrder.getPayStatus() != ConstantConfig.REFUND
+                    && chargeOrder.getPayStatus() != ConstantConfig.INVOICED
+                    && chargeOrder.getPayStatus() != ConstantConfig.UNREFUND) {
                 // 使用余额支付
                 boolean refund = true;
                 int actPayment = 0;
@@ -453,7 +460,7 @@ public class RequestHandler {
                     }
                     chargeStream.setter(chargeOrder.getId(), chargeCert.getId(), chargeCert.getUserId(), chargeCert.getBeginedAt(), chargeCert.getFinishedAt(),
                             ConstantConfig.STREAM_TYPE_REFOUND, refundAct, chargeCert.getCurValue(), virtualRefund, curValue, chargeCert.getRealValue(), refundAct, curRealValue,
-                            operatorSrc, chargeCert.getId().intValue());
+                            operatorSrc, chargeCert.getId().intValue(), ReasonUserCode.CHARGE_FAILURE.getDescribe());
 
                     log.info("chargeStream={}", chargeStream);
                     chargeStreamMapper.insert(chargeStream);
@@ -513,7 +520,7 @@ public class RequestHandler {
             return;
         }
 
-        if (status == 1) { // 停止成功
+        if (status == ConstantConfig.SUCCESS) { // 停止成功
             int certId = stopChargeRequest.getCertId();
             int certType = stopChargeRequest.getCertType();
             String sequenceNumber = SequenceNumberGengerator.getInstance().generate(1000 * (long) stopChargeRequest.getTimeStamp(),
@@ -538,7 +545,11 @@ public class RequestHandler {
 
                 // 判断是否需要退款
                 Integer payment = chargeOrder.getPayment();
-                if (payment > 0 && (certType == ConstantConfig.CERT_CART_OF_BALANCE || certType == ConstantConfig.CERT_OF_PHONE)) {
+                if (payment > 0
+                        && (certType == ConstantConfig.CERT_CART_OF_BALANCE || certType == ConstantConfig.CERT_OF_PHONE)
+                        && chargeOrder.getPayStatus() != ConstantConfig.REFUND
+                        && chargeOrder.getPayStatus() != ConstantConfig.INVOICED
+                        && chargeOrder.getPayStatus() != ConstantConfig.UNREFUND) {
                     boolean refund = false;
                     boolean refundAll = false;
                     int actPayment = 0;
@@ -647,7 +658,7 @@ public class RequestHandler {
                         }
                         chargeStream.setter(chargeOrder.getId(), chargeCert.getId(), chargeCert.getUserId(), chargeCert.getBeginedAt(), chargeCert.getFinishedAt(),
                                 ConstantConfig.STREAM_TYPE_REFOUND, refundAct, chargeCert.getCurValue(), virtualRefund, curValue, chargeCert.getRealValue(), refundAct, curRealValue,
-                                operatorSrc, chargeCert.getId().intValue());
+                                operatorSrc, chargeCert.getId().intValue(), ReasonUserCode.getType(reason));
 
                         log.info("chargeStream={}", chargeStream);
                         chargeStreamMapper.insert(chargeStream);
@@ -672,7 +683,7 @@ public class RequestHandler {
                     log.info("[ReportStopChargeRequest][notifyUserRequest]result: {}", result);
                 }
             }
-        } else if (status == 2) { // 停止失败
+        } else if (status == ConstantConfig.FAILURE) { // 停止失败
             log.warn("[ReportStopChargeRequest][{}]device({}) stop charge failed", deviceNumber, port);
         } else { // 状态值非法
             log.warn("[ReportStopChargeRequest][{}]device({}) invalid stop status({})", deviceNumber, port, status);

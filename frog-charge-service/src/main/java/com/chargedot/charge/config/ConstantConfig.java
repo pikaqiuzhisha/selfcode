@@ -66,7 +66,6 @@ public class ConstantConfig {
     public static final int FINISH_CHARGE_AUTO = 5;
 
 
-
     /**
      * 1为已创建,2为进行中,3为正常充电完成,4为过流停止充电
      */

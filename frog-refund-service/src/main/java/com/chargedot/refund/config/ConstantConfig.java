@@ -65,14 +65,18 @@ public class ConstantConfig {
     public static final int FINISH_CHARGE_AUTO = 5;
 
 
+    public static final int SUCCESS = 1;
+    public static final int FAILURE = 2;
 
     /**
-     * 1为已创建,2为进行中,3为正常充电完成,4为过流停止充电
+     * 订单状态 1为已创建,2为进行中,3为正常充电完成,4为过流停止充电,5未充电
      */
     public static final int CREATED = 1;
     public static final int ONGOING = 2;
     public static final int FINISH_SUCCESS = 3;
     public static final int FINISH_OUT_OF_AC = 4;
+    public static final int UNCHARGEING = 5;
+
 
     /**
      * 凭证类型： 1包月次卡 2包月包时卡 3充值卡 4手机号
@@ -97,11 +101,15 @@ public class ConstantConfig {
     public final static int ORDER_TYPE_ADJUST = 3;
 
     /**
-     * 支付状态 1为待支付,2为支付成功,4已退款
+     * 支付状态 1为待支付,2为支付成功,3为支付失败,4已退款,5已开票,6待退款
      */
     public static final int UNPAID = 1;
     public static final int PAID = 2;
+    public static final int PAID_FAILURE = 3;
     public static final int REFUND = 4;
+    public static final int INVOICED = 5;
+    public static final int UNREFUND = 6;
+
 
     /**
      * 扣款来源 1实账 2虚账 3虚实结合
