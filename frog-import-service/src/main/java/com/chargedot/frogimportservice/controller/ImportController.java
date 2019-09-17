@@ -1,13 +1,13 @@
 package com.chargedot.frogimportservice.controller;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
 import com.chargedot.frogimportservice.controller.vo.CommonResult;
 import com.chargedot.frogimportservice.model.DWCert;
 import com.chargedot.frogimportservice.model.vo.DataParam;
 import com.chargedot.frogimportservice.service.DWCertService;
+import com.chargedot.frogimportservice.util.JacksonUtil;
 import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 @CrossOrigin
 @Slf4j
@@ -29,20 +30,19 @@ public class ImportController {
     private DWCertService dwCertService;
 
     @HystrixCommand(fallbackMethod = "defaultSendMessage")
-    @RequestMapping(value = "/cert_import", method = RequestMethod.POST,produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    @RequestMapping(value = "/cert_import", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<CommonResult> importData(@RequestBody String data) {
 
         //校验参数
-        if(data == null){
+        if (StringUtils.isBlank(data)) {
             return new ResponseEntity<CommonResult>(CommonResult.buildResult(4003), HttpStatus.OK);
         }
 
-        //把参数转换为JSONObject对象
-        JSONObject jsonObject = JSONObject.parseObject(data);
         //JSONObject转成JAVA对象
-        DataParam dataParam = JSONObject.toJavaObject(jsonObject,DataParam.class);
+        DataParam dataParam = JacksonUtil.json2Bean(data, DataParam.class);
+
         //校验参数的解析是否正确
-        if(dataParam == null){
+        if (Objects.isNull(dataParam)) {
             return new ResponseEntity<CommonResult>(CommonResult.buildResult(4003), HttpStatus.OK);
         }
 
@@ -56,15 +56,18 @@ public class ImportController {
         int type = dataParam.getType();
 
         //校验参数
-        if(dwCertList == null){
+        if (Objects.isNull(dwCertList)) {
             return new ResponseEntity<CommonResult>(CommonResult.buildResult(4003), HttpStatus.OK);
-        }else{
+        } else {
             log.debug("req：{}", dwCertList);
             //存储重复的卡号
             List<DWCert> repeatCertList = new ArrayList<>();
             //存储唯一的卡号
-            List<DWCert> noRepeatCertList = new ArrayList<>();
-            log.debug("card条数：{}", dwCertList.size());
+            List<DWCert> nonRepeatCertList = new ArrayList<>();
+
+            if (log.isDebugEnabled()) {
+                log.debug("card条数：{}", dwCertList.size());
+            }
             log.info("开始时间：{}", new Date());
             //定义变量,来校验录卡是否成功
             int isRight = 0;
@@ -85,42 +88,45 @@ public class ImportController {
                         repeatCertList.add(dwCert);
                         repeatCount++;
                     } else {
-                        noRepeatCertList.add(dwCert);
+                        nonRepeatCertList.add(dwCert);
                         noRepeatCount++;
                     }
                 }
                 log.info("结束时间：{}", new Date());
-                log.debug("重复个数：{}", repeatCount);
-                log.debug("repeatCardList：{}", repeatCertList);
-                log.debug("不重复个数：{}", noRepeatCount);
-                log.debug("noRepeatCardList：{}", noRepeatCertList);
+                if (log.isDebugEnabled()) {
+                    log.debug("重复个数：{}", repeatCount);
+                    log.debug("repeatCardList：{}", repeatCertList);
+                    log.debug("不重复个数：{}", noRepeatCount);
+                    log.debug("noRepeatCardList：{}", nonRepeatCertList);
+                }
             } else {
-                return new ResponseEntity<CommonResult>(CommonResult.buildErrorResult(1,"collection has no data.",null), HttpStatus.OK);
+                return new ResponseEntity<CommonResult>(CommonResult.buildErrorResult(1, "collection has no data.", null), HttpStatus.OK);
             }
+
             //定义一个数组，来接收卡号
-            String [] resultCertNumber = null;
+            String[] resultCertNumber = null;
             //定义一个对象，来接收JSON转化的数组
             Object cert = null;
             //校验卡号是否有重复的
-            if(dwCertList.size() == repeatCount){
+            if (dwCertList.size() == repeatCount) {
                 resultCertNumber = new String[repeatCertList.size()];
-                for(int i = 0; i < repeatCertList.size(); i++){
+                for (int i = 0; i < repeatCertList.size(); i++) {
                     resultCertNumber[i] = repeatCertList.get(i).getCertNumber();
                 }
-                cert = JSON.toJSON(resultCertNumber);
-                return new ResponseEntity<CommonResult>(CommonResult.buildErrorResult(1,"repeat collection has data and noRepeat collection has no data.",cert), HttpStatus.OK);
-            }else{
+                cert = JacksonUtil.bean2Json(resultCertNumber);
+                return new ResponseEntity<CommonResult>(CommonResult.buildErrorResult(1, "repeat collection has data and noRepeat collection has no data.", cert), HttpStatus.OK);
+            } else {
                 //调用批量导入凭证号方法
-                isRight = dwCertService.importDWCertData(noRepeatCertList);
-                resultCertNumber = new String[noRepeatCertList.size()];
-                for(int i = 0; i < noRepeatCertList.size(); i++){
-                    resultCertNumber[i] = noRepeatCertList.get(i).getCertNumber();
+                isRight = dwCertService.importDWCertData(nonRepeatCertList);
+                resultCertNumber = new String[nonRepeatCertList.size()];
+                for (int i = 0; i < nonRepeatCertList.size(); i++) {
+                    resultCertNumber[i] = nonRepeatCertList.get(i).getCertNumber();
                 }
-                cert = JSON.toJSON(resultCertNumber);
+                cert = JacksonUtil.bean2Json(resultCertNumber);
                 //校验是否调用成功
-                if(isRight < 0){
-                    return new ResponseEntity<CommonResult>(CommonResult.buildErrorResult(1,"new certNumber method call failed.",null), HttpStatus.OK);
-                }else{
+                if (isRight < 0) {
+                    return new ResponseEntity<CommonResult>(CommonResult.buildErrorResult(1, "new certNumber method call failed.", null), HttpStatus.OK);
+                } else {
                     return new ResponseEntity<CommonResult>(CommonResult.buildSuccessResult(cert), HttpStatus.OK);
                 }
             }
