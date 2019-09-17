@@ -66,7 +66,7 @@ public class ImportController {
             List<DWCert> nonRepeatCertList = new ArrayList<>();
 
             if (log.isDebugEnabled()) {
-                log.debug("cert条数：{}", dwCertList.size());
+                log.debug("card条数：{}", dwCertList.size());
             }
             log.info("开始时间：{}", new Date());
             //定义变量,来校验录凭证号是否成功
@@ -106,9 +106,9 @@ public class ImportController {
                 log.info("结束时间：{}", new Date());
                 if (log.isDebugEnabled()) {
                     log.debug("重复个数：{}", repeatCount);
-                    log.debug("repeatCertList：{}", repeatCertList);
+                    log.debug("repeatCardList：{}", repeatCertList);
                     log.debug("不重复个数：{}", noRepeatCount);
-                    log.debug("noRepeatCertList：{}", nonRepeatCertList);
+                    log.debug("noRepeatCardList：{}", nonRepeatCertList);
                 }
             } else {
                 return new ResponseEntity<CommonResult>(CommonResult.buildErrorResult(1, "collection has no data.", null), HttpStatus.OK);
