@@ -35,7 +35,7 @@ public class ImportController {
 
         //校验参数
         if (StringUtils.isBlank(data)) {
-            return new ResponseEntity<CommonResult>(CommonResult.buildResult(4003), HttpStatus.OK);
+            return new ResponseEntity<CommonResult>(CommonResult.buildResults(1, "参数错误.", null), HttpStatus.OK);
         }
 
         //JSONObject转成JAVA对象
@@ -43,7 +43,7 @@ public class ImportController {
 
         //校验参数的解析是否正确
         if (Objects.isNull(dataParam)) {
-            return new ResponseEntity<CommonResult>(CommonResult.buildResult(4003), HttpStatus.OK);
+            return new ResponseEntity<CommonResult>(CommonResult.buildResults(1, "参数解析错误.", null), HttpStatus.OK);
         }
 
         //获取凭证号集合
@@ -57,7 +57,7 @@ public class ImportController {
 
         //校验参数
         if (Objects.isNull(dwCertList)) {
-            return new ResponseEntity<CommonResult>(CommonResult.buildResult(4003), HttpStatus.OK);
+            return new ResponseEntity<CommonResult>(CommonResult.buildResults(1, "集合获取错误.", null), HttpStatus.OK);
         } else {
             log.debug("req：{}", dwCertList);
             //存储重复的凭证号
@@ -111,7 +111,7 @@ public class ImportController {
                     log.debug("noRepeatCertList：{}", nonRepeatCertList);
                 }
             } else {
-                return new ResponseEntity<CommonResult>(CommonResult.buildErrorResult(1, "collection has no data.", null), HttpStatus.OK);
+                return new ResponseEntity<CommonResult>(CommonResult.buildResults(1, "集合无数据.", null), HttpStatus.OK);
             }
 
             //定义一个数组，来接收凭证号
@@ -125,7 +125,7 @@ public class ImportController {
                     resultCertNumber[i] = repeatCertList.get(i).getCertNumber();
                 }
                 cert = JacksonUtil.bean2Json(resultCertNumber);
-                return new ResponseEntity<CommonResult>(CommonResult.buildErrorResult(1, "repeat collection has data and noRepeat collection has no data.", cert), HttpStatus.OK);
+                return new ResponseEntity<CommonResult>(CommonResult.buildResults(1, "凭证号已存在.", cert), HttpStatus.OK);
             } else {
                 //调用批量导入凭证号方法
                 isRight = dwCertService.importDWCertData(nonRepeatCertList);
@@ -136,9 +136,9 @@ public class ImportController {
                 cert = JacksonUtil.bean2Json(resultCertNumber);
                 //校验是否调用成功
                 if (isRight < 0) {
-                    return new ResponseEntity<CommonResult>(CommonResult.buildErrorResult(1, "new certNumber method call failed.", null), HttpStatus.OK);
+                    return new ResponseEntity<CommonResult>(CommonResult.buildResults(1, "调用批量导入方法错误.", null), HttpStatus.OK);
                 } else {
-                    return new ResponseEntity<CommonResult>(CommonResult.buildSuccessResult(cert), HttpStatus.OK);
+                    return new ResponseEntity<CommonResult>(CommonResult.buildResults(0, "导入成功.", cert), HttpStatus.OK);
                 }
             }
         }
