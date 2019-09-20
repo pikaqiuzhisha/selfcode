@@ -58,7 +58,7 @@ public class CommonResult {
         return new CommonResult(ret, msg);
     }
 
-    public static CommonResult buildErrorResult(Integer ret, String msg,Object data) {
+    public static CommonResult buildResults(Integer ret, String msg,Object data) {
         return new CommonResult(ret, msg, data);
     }
 }

@@ -35,7 +35,7 @@ public class ImportController {
 
         //校验参数
         if (StringUtils.isBlank(data)) {
-            return new ResponseEntity<CommonResult>(CommonResult.buildResult(4003), HttpStatus.OK);
+            return new ResponseEntity<CommonResult>(CommonResult.buildResults(1, "参数错误.", null), HttpStatus.OK);
         }
 
         //JSONObject转成JAVA对象
@@ -43,7 +43,7 @@ public class ImportController {
 
         //校验参数的解析是否正确
         if (Objects.isNull(dataParam)) {
-            return new ResponseEntity<CommonResult>(CommonResult.buildResult(4003), HttpStatus.OK);
+            return new ResponseEntity<CommonResult>(CommonResult.buildResults(1, "参数解析错误.", null), HttpStatus.OK);
         }
 
         //获取凭证号集合
@@ -57,13 +57,13 @@ public class ImportController {
 
         //校验参数
         if (Objects.isNull(dwCertList)) {
-            return new ResponseEntity<CommonResult>(CommonResult.buildResult(4003), HttpStatus.OK);
+            return new ResponseEntity<CommonResult>(CommonResult.buildResults(1, "集合获取错误.", null), HttpStatus.OK);
         } else {
             log.debug("req：{}", dwCertList);
             //存储重复的凭证号
             List<DWCert> repeatCertList = new ArrayList<>();
-            //存储唯一的凭证号
-            List<DWCert> nonRepeatCertList = new ArrayList<>();
+            //存储唯一凭证号
+            List<DWCert> noRepeatCertList = new ArrayList<>();
 
             if (log.isDebugEnabled()) {
                 log.debug("cert条数：{}", dwCertList.size());
@@ -88,18 +88,16 @@ public class ImportController {
                         repeatCertList.add(dwCert);
                         repeatCount++;
                     } else {
-                        //校验集合无数据时，第一次查出数据库没有这条凭证号，直接添加到不重复集合中
-                        if(nonRepeatCertList.size() == 0){
-                            nonRepeatCertList.add(dwCert);
-                            noRepeatCount++;
-                        }else{
-                            //之后查出数据库没有这条凭证号，需要循环不重复凭证号集合，校验集合中是否存在这条凭证号
-                            for(int i = 0; i < nonRepeatCertList.size(); i++){
-                                if(!dwCert.getCertNumber().equals(nonRepeatCertList.get(i).getCertNumber())){
-                                    nonRepeatCertList.add(dwCert);
-                                    noRepeatCount++;
-                                }
-                            }
+                        noRepeatCertList.add(dwCert);
+                        noRepeatCount++;
+                    }
+                }
+                //移除凭证号集合中重复的凭证号信息，得到真正不重复的凭证号集合
+                for ( int i = 0; i < noRepeatCertList.size() - 1; i ++ ) {
+                    for ( int j = noRepeatCertList.size() - 1; j > i; j -- ) {
+                        if (noRepeatCertList.get(j).equals(noRepeatCertList.get(i))) {
+                            noRepeatCertList.remove(j);
+                            noRepeatCount--;
                         }
                     }
                 }
@@ -108,10 +106,10 @@ public class ImportController {
                     log.debug("重复个数：{}", repeatCount);
                     log.debug("repeatCertList：{}", repeatCertList);
                     log.debug("不重复个数：{}", noRepeatCount);
-                    log.debug("noRepeatCertList：{}", nonRepeatCertList);
+                    log.debug("noRepeatCertList：{}", noRepeatCertList);
                 }
             } else {
-                return new ResponseEntity<CommonResult>(CommonResult.buildErrorResult(1, "collection has no data.", null), HttpStatus.OK);
+                return new ResponseEntity<CommonResult>(CommonResult.buildResults(1, "集合无数据.", null), HttpStatus.OK);
             }
 
             //定义一个数组，来接收凭证号
@@ -125,20 +123,20 @@ public class ImportController {
                     resultCertNumber[i] = repeatCertList.get(i).getCertNumber();
                 }
                 cert = JacksonUtil.bean2Json(resultCertNumber);
-                return new ResponseEntity<CommonResult>(CommonResult.buildErrorResult(1, "repeat collection has data and noRepeat collection has no data.", cert), HttpStatus.OK);
+                return new ResponseEntity<CommonResult>(CommonResult.buildResults(1, "凭证号已存在.", cert), HttpStatus.OK);
             } else {
                 //调用批量导入凭证号方法
-                isRight = dwCertService.importDWCertData(nonRepeatCertList);
-                resultCertNumber = new String[nonRepeatCertList.size()];
-                for (int i = 0; i < nonRepeatCertList.size(); i++) {
-                    resultCertNumber[i] = nonRepeatCertList.get(i).getCertNumber();
+                isRight = dwCertService.importDWCertData(noRepeatCertList);
+                resultCertNumber = new String[noRepeatCertList.size()];
+                for (int i = 0; i < noRepeatCertList.size(); i++) {
+                    resultCertNumber[i] = noRepeatCertList.get(i).getCertNumber();
                 }
                 cert = JacksonUtil.bean2Json(resultCertNumber);
                 //校验是否调用成功
                 if (isRight < 0) {
-                    return new ResponseEntity<CommonResult>(CommonResult.buildErrorResult(1, "new certNumber method call failed.", null), HttpStatus.OK);
+                    return new ResponseEntity<CommonResult>(CommonResult.buildResults(1, "调用批量导入方法错误.", null), HttpStatus.OK);
                 } else {
-                    return new ResponseEntity<CommonResult>(CommonResult.buildSuccessResult(cert), HttpStatus.OK);
+                    return new ResponseEntity<CommonResult>(CommonResult.buildResults(0, "导入成功.", cert), HttpStatus.OK);
                 }
             }
         }
