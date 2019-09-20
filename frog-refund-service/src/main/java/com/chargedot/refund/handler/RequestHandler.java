@@ -150,7 +150,9 @@ public class RequestHandler {
                     if (Objects.nonNull(chargeOrder)
                             && chargeOrder.getPayStatus() != ConstantConfig.REFUND
                             && chargeOrder.getPayStatus() != ConstantConfig.INVOICED
-                            && chargeOrder.getPayStatus() != ConstantConfig.UNREFUND) {
+                            && chargeOrder.getPayStatus() != ConstantConfig.UNREFUND
+                            && chargeOrder.getOrderStatus() != ConstantConfig.FINISH_SUCCESS
+                            && chargeOrder.getOrderStatus() != ConstantConfig.FINISH_OUT_OF_AC) {
                         long certId = chargeOrder.getCertId();
                         ChargeCert chargeCert = chargeCertMapper.findByCertId(certId);
                         if (Objects.isNull(chargeCert)) {
@@ -246,6 +248,7 @@ public class RequestHandler {
                                     refundAct = refundTotal;
                                 }
 
+                                chargeOrder.setChargeFinishReason(ReasonUserCode.DEVICE_RESTART.getDescribe());
                                 chargeOrder.refundSetter(chargeOrder.getPayment(), paymentAct, virtualPayment, refundAct, virtualRefund, orderType, ConstantConfig.REFUND, ConstantConfig.FINISH_SUCCESS, now);
 
                                 chargeOrderMapper.refundUpdate(chargeOrder);

@@ -395,8 +395,9 @@ public class RequestHandler {
                             chargeCert.getCertNumber(), sequenceNumber, orderNumber, startChargeRequest.getPresetChargeTime() * 60);
 
                     if (certType == ConstantConfig.CARD_TYPE_OF_MONTH_COUNT || certType == ConstantConfig.CARD_TYPE_OF_MONTH_TIME) {
+                        int payType = ConstantConfig.PAY_NULL;
                         chargeOrder.paySetter(0, 0, 0, 0, ConstantConfig.UNPAID,
-                                ConstantConfig.PAY_NULL, devicePort.getFeeDetail(), null);
+                                payType, devicePort.getFeeDetail(), null);
                         chargeOrderMapper.insert(chargeOrder);
                         log.info("[ReportStartChargeRequest][{}]create new order({}), card({}), user({}), sequenceNumber({}), port({})",
                                 deviceNumber, orderNumber, chargeCert.getCertNumber(), certId, sequenceNumber, port);
@@ -635,6 +636,10 @@ public class RequestHandler {
                 // 更新端口信息
                 CouplerDynamicDetail detail = new CouplerDynamicDetail();
                 devicePort.setTryOccupyUserId(0);
+                if (reason == 2) {
+                    devicePort.setStatus(5);
+                }
+                devicePort.setStatus(2);
                 devicePort.setDetail(JacksonUtil.bean2Json(detail));
                 devicePortMapper.update(devicePort);
                 log.info("[ReportStopChargeRequest][{}]update device({}), status({}), occupyUserId({})",
@@ -642,7 +647,14 @@ public class RequestHandler {
             }
 
             // 判断是否需要退款
-            kafkaProducer.send(ConstantConfig.DW_CHARGE_REFUND_TOPIC, request.getDeviceNumber(), JacksonUtil.bean2Json(stopChargeRequest));
+            if (stopChargeRequest.getReason() != ReasonCode.SUCCESS.getStatusCode()
+                    && stopChargeRequest.getReason() != ReasonCode.FULL_STOP.getStatusCode()
+                    && stopChargeRequest.getReason() != ReasonCode.USER_STOP.getStatusCode()) {
+                kafkaProducer.send(ConstantConfig.DW_CHARGE_REFUND_TOPIC, request.getDeviceNumber(), JacksonUtil.bean2Json(stopChargeRequest));
+            } else {
+                String result = HttpRequestUtil.notifyUserRequest(chargeOrder.getOrderNumber(), ReasonUserCode.getType(stopChargeRequest.getReason()), ConstantConfig.NOTIFY_USER_FINISHED, serverConfig.getUserPushUrl());
+                log.info("[ReportStopChargeRequest][notifyUserRequest]result: {}", result);
+            }
         } else if (status == 2) { // 停止失败
             log.warn("[ReportStopChargeRequest][{}]device({}) stop charge failed", deviceNumber, port);
         } else { // 状态值非法
