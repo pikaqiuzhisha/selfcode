@@ -2,10 +2,7 @@ package com.chargedot.charge.message;
 
 import com.chargedot.charge.config.ConstantConfig;
 import com.chargedot.charge.handler.RequestHandler;
-import com.chargedot.charge.handler.request.CheckAuthorityRequest;
-import com.chargedot.charge.handler.request.CheckInRequest;
-import com.chargedot.charge.handler.request.StartChargeRequest;
-import com.chargedot.charge.handler.request.StopChargeRequest;
+import com.chargedot.charge.handler.request.*;
 import com.chargedot.charge.mapper.ChargeCertMapper;
 import com.chargedot.charge.model.ChargeCert;
 import com.chargedot.charge.util.JacksonUtil;
@@ -112,6 +109,39 @@ public class MessageHandler implements Runnable {
                 checkInRequest.setAuthorType(authorType);
                 checkInRequest.setConnectNetMode(connectNetMode);
                 SpringBeanUtil.getBean(RequestHandler.class).fire(checkInRequest);
+                break;
+            case ConstantConfig.DCheckAuthorityExpiredRequest:
+                log.info("[DCheckAuthorityExpiredRequest][{}][message]{}", key, message);
+                try {
+                    String cardNumber = (String) mapParam.get("CardNumber");
+                    String port = (String) mapParam.get("Port");
+
+                    if (StringUtils.isBlank(cardNumber)) {
+                        log.warn("[DCheckAuthorityExpiredRequest][{}]invalid cardNumber({})", key, cardNumber);
+                        break;
+                    }
+
+                    if (StringUtils.isBlank(port)) {
+                        log.warn("[DCheckAuthorityExpiredRequest][{}]invalid portNumber({})", key, port);
+                        break;
+                    }
+
+                    if (Objects.isNull(mapParam.get("SeqNumber"))) {
+                        log.warn("[DCheckAuthorityExpiredRequest][{}]invalid portNumber({})", key, port);
+                        break;
+                    }
+                    int seqNumber = (int) mapParam.get("SeqNumber");
+
+                    CheckAuthorityExpiredRequest checkAuthorityRequest = new CheckAuthorityExpiredRequest();
+                    checkAuthorityRequest.setOperationType("CheckAuthorityRequest");
+                    checkAuthorityRequest.setCardNumber(cardNumber);
+                    checkAuthorityRequest.setDeviceNumber(key);
+                    checkAuthorityRequest.setPort(port);
+                    checkAuthorityRequest.setSeqNumber(seqNumber);
+                    SpringBeanUtil.getBean(RequestHandler.class).fire(checkAuthorityRequest);
+                } catch (Exception e) {
+                    log.warn("[DCheckAuthorityRequest]exception happened ", e);
+                }
                 break;
             case ConstantConfig.DCheckAuthorityRequest:
                 log.info("[DCheckAuthorityRequest][{}][message]{}", key, message);
