@@ -117,15 +117,15 @@ public class RequestHandler {
             // 设备登陆签到
             parseCheckInRequest((CheckInRequest) request);
 
-        } else if (request instanceof CheckAuthorityRequest) {
-            // 刷卡鉴权
-            parseCheckAuthorityRequest((CheckAuthorityRequest) request);
-
         } else if (request instanceof CheckAuthorityExpiredRequest) {
             // 刷卡鉴权
             parseCheckAuthorityRequest((CheckAuthorityExpiredRequest) request,true);
 
-        }else if (request instanceof StartChargeRequest) {
+        }else if (request instanceof CheckAuthorityRequest) {
+            // 刷卡鉴权
+            parseCheckAuthorityRequest((CheckAuthorityRequest) request);
+
+        } else if (request instanceof StartChargeRequest) {
             // 开始充电结果上报
             parseStartChargeRequest((StartChargeRequest) request);
 
@@ -228,9 +228,10 @@ public class RequestHandler {
                 if (finishDate.isBefore(now)) {
                     // 有效期
                     authorized = false;
+                    result=3;
                     log.warn("[CheckAuthorityRequest][{}]card({}) has expired", deviceNumber, chargeCert.getCertNumber());
                 }else{
-                    expiredDate= (int) finishDate.until(now, ChronoUnit.DAYS);
+                    expiredDate= Math.abs((int) finishDate.until(now, ChronoUnit.DAYS));
                     log.info("[CheckAuthorityRequest]expiredDate=[{}];card({}) ", expiredDate, chargeCert.getCertNumber());
                 }
 
@@ -326,6 +327,7 @@ public class RequestHandler {
                 devicePort = devicePortMapper.findByOccupyUserId((int) certId);
                 if (Objects.nonNull(devicePort)) {
                     authorized = false;
+                    result=4;
                     occupyPort=1;
                     log.warn("[CheckAuthorityRequest][{}]card({}) are occupying device({})",
                             deviceNumber, cardNumber, devicePort.getPortNumber());
@@ -333,6 +335,7 @@ public class RequestHandler {
             } else {
                 // 卡片不存在
                 authorized = false;
+                result=1;
                 log.warn("[CheckAuthorityRequest][{}]card({}) not exist", deviceNumber, cardNumber);
             }
         }
