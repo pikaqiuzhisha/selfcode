@@ -22,6 +22,7 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
@@ -120,7 +121,11 @@ public class RequestHandler {
             // 刷卡鉴权
             parseCheckAuthorityRequest((CheckAuthorityRequest) request);
 
-        } else if (request instanceof StartChargeRequest) {
+        } else if (request instanceof CheckAuthorityExpiredRequest) {
+            // 刷卡鉴权
+            parseCheckAuthorityRequest((CheckAuthorityExpiredRequest) request,true);
+
+        }else if (request instanceof StartChargeRequest) {
             // 开始充电结果上报
             parseStartChargeRequest((StartChargeRequest) request);
 
@@ -160,12 +165,23 @@ public class RequestHandler {
     }
 
     /**
-     * 刷卡鉴权
+     * 刷卡鉴权(兼容0x11)
      * @param request
      * @throws NoSuchFieldException
      * @throws IllegalAccessException
      */
     private void parseCheckAuthorityRequest(CheckAuthorityRequest request) {
+        parseCheckAuthorityRequest(request,false);
+
+    }
+
+    /**
+     * 刷卡鉴权(兼容0x11,0x2C)
+     * @param request
+     * @throws NoSuchFieldException
+     * @throws IllegalAccessException
+     */
+    private void parseCheckAuthorityRequest(CheckAuthorityRequest request,boolean checkExpired) {
         CheckAuthorityRequest checkAuthorityRequest = request;
         String deviceNumber = checkAuthorityRequest.getDeviceNumber();
         String cardNumber = checkAuthorityRequest.getCardNumber();
@@ -173,6 +189,7 @@ public class RequestHandler {
         int seqNumber = request.getSeqNumber();
         boolean authorized = true;
         DevicePort devicePort = null;
+
 
         if (ConstantConfig.PORT_ALL.equals(port)) {
             devicePort = devicePortMapper.findLikeDeviceNumberAvailable(deviceNumber);
@@ -195,6 +212,9 @@ public class RequestHandler {
         int duration = 0;
         int certType = 0; // 卡类型：1包月次卡 2包月包时卡 3充值卡
         int chargeBalance = 0; // 卡余额（次数/时长/余额）
+        int expiredDate=0;//卡有效期天数
+        int occupyPort=0;//用户是否正占用别的端口，0表示没有占用，其他为占用
+
         if (authorized) {
             chargeCert = chargeCertMapper.findByCertNumber(cardNumber);
             if (Objects.nonNull(chargeCert)) {
@@ -209,6 +229,9 @@ public class RequestHandler {
                     // 有效期
                     authorized = false;
                     log.warn("[CheckAuthorityRequest][{}]card({}) has expired", deviceNumber, chargeCert.getCertNumber());
+                }else{
+                    expiredDate= (int) finishDate.until(now, ChronoUnit.DAYS);
+                    log.info("[CheckAuthorityRequest]expiredDate=[{}];card({}) ", expiredDate, chargeCert.getCertNumber());
                 }
 
                 if (chargeCert.getForbidStatus() == ConstantConfig.CARD_FORBIDDEN) {
@@ -303,6 +326,7 @@ public class RequestHandler {
                 devicePort = devicePortMapper.findByOccupyUserId((int) certId);
                 if (Objects.nonNull(devicePort)) {
                     authorized = false;
+                    occupyPort=1;
                     log.warn("[CheckAuthorityRequest][{}]card({}) are occupying device({})",
                             deviceNumber, cardNumber, devicePort.getPortNumber());
                 }
@@ -328,7 +352,11 @@ public class RequestHandler {
             log.info("[CheckAuthorityRequest][{}]card({}) authentication failed", deviceNumber, cardNumber);
         }
 
-        params.put("OperationType", "DCheckAuthorityRequest");
+        if(checkExpired){
+            params.put("OperationType", "DCheckAuthorityExpiredRequest");
+        }else {
+            params.put("OperationType", "DCheckAuthorityRequest");
+        }
         params.put("Result", result);
         params.put("Duration", duration);
         params.put("SequenceNumber", sequenceNumber);
@@ -337,6 +365,8 @@ public class RequestHandler {
         params.put("CardType", certType);
         params.put("ChargeBalance", chargeBalance);
         params.put("SeqNumber", seqNumber);
+        params.put("ExpiredDate",expiredDate);
+        params.put("OccupyPort",occupyPort);
         kafkaProducer.send(ConstantConfig.S2D_RES_TOPIC, deviceNumber, JacksonUtil.map2Json(params));
     }
 

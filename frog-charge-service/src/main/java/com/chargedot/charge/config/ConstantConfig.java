@@ -28,6 +28,7 @@ public class ConstantConfig {
     public static final String StartStopResultPushRequest = "StartStopResultPushRequest";//充电起停结果上报
     public static final String DCheckInRequest = "DCheckInRequest";//设备登陆签到
     public static final String DCheckAuthorityRequest = "DCheckAuthorityRequest";//设备刷卡鉴权
+    public static final String DCheckAuthorityExpiredRequest = "DCheckAuthorityExpiredRequest";//设备刷卡鉴权检测卡有效期
 
     /**
      * redis config
