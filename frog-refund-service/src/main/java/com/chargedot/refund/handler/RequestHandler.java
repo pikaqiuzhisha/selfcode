@@ -248,6 +248,7 @@ public class RequestHandler {
                                     refundAct = refundTotal;
                                 }
 
+                                chargeOrder.setFinishedAt(now);
                                 chargeOrder.setChargeFinishReason(ReasonUserCode.DEVICE_RESTART.getDescribe());
                                 chargeOrder.refundSetter(chargeOrder.getPayment(), paymentAct, virtualPayment, refundAct, virtualRefund, orderType, ConstantConfig.REFUND, ConstantConfig.FINISH_SUCCESS, now);
 
@@ -445,6 +446,8 @@ public class RequestHandler {
                         refundAct = refundTotal;
                     }
 
+                    chargeOrder.setFinishedAt(now);
+                    chargeOrder.setChargeFinishReason(ReasonUserCode.CHARGE_FAILURE.getDescribe());
                     chargeOrder.refundSetter(chargeOrder.getPayment(), paymentAct, virtualPayment, refundAct, virtualRefund, orderType, ConstantConfig.REFUND, ConstantConfig.FINISH_SUCCESS, now);
 
                     chargeOrderMapper.refundUpdate(chargeOrder);
