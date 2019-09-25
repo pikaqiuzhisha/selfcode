@@ -72,20 +72,22 @@ public class MessageHandler implements Runnable {
 
                     ChargeCertMapper chargeCertMapper = SpringBeanUtil.getBean(ChargeCertMapper.class);
                     ChargeCert chargeCert = chargeCertMapper.findByCertId(certId);
-                    Integer certType = chargeCert.getType();
-                    if (type == 1 || type == 3) { // 开始充电结果或者用户扫码解锁响应结果上报
-                        StartChargeRequest startChargeRequest = new StartChargeRequest();
-                        startChargeRequest.setOperationType("StartChargeRequest");
-                        startChargeRequest.setter(key, port, type, status, reason, certId, timeStamp, certType);
-                        startChargeRequest.setPresetChargeTime(presetChargeTime);
-                        SpringBeanUtil.getBean(RequestHandler.class).fire(startChargeRequest);
-                    } else if (type == 2) { // 停止充电结果上报
-                        StopChargeRequest stopChargeRequest = new StopChargeRequest();
-                        stopChargeRequest.setOperationType("StopChargeRequest");
-                        stopChargeRequest.setter(key, port, type, status, reason, certId, timeStamp, certType);
-                        stopChargeRequest.setActualChargeTime(actualChargeTime);
-                        stopChargeRequest.setPresetChargeTime(presetChargeTime);
-                        SpringBeanUtil.getBean(RequestHandler.class).fire(stopChargeRequest);
+                    if (Objects.nonNull(chargeCert)) {
+                        Integer certType = chargeCert.getType();
+                        if (type == 1 || type == 3) { // 开始充电结果或者用户扫码解锁响应结果上报
+                            StartChargeRequest startChargeRequest = new StartChargeRequest();
+                            startChargeRequest.setOperationType("StartChargeRequest");
+                            startChargeRequest.setter(key, port, type, status, reason, certId, timeStamp, certType);
+                            startChargeRequest.setPresetChargeTime(presetChargeTime);
+                            SpringBeanUtil.getBean(RequestHandler.class).fire(startChargeRequest);
+                        } else if (type == 2) { // 停止充电结果上报
+                            StopChargeRequest stopChargeRequest = new StopChargeRequest();
+                            stopChargeRequest.setOperationType("StopChargeRequest");
+                            stopChargeRequest.setter(key, port, type, status, reason, certId, timeStamp, certType);
+                            stopChargeRequest.setActualChargeTime(actualChargeTime);
+                            stopChargeRequest.setPresetChargeTime(presetChargeTime);
+                            SpringBeanUtil.getBean(RequestHandler.class).fire(stopChargeRequest);
+                        }
                     }
                 } catch (Exception e) {
                     log.warn("[StartStopResultPushRequest]exception happened ", e);
