@@ -22,6 +22,7 @@
           duration_plan AS durationPlan,
           payment AS payment,
           payment_act AS paymentAct,
+          refund_act AS refundAct,
           payment_virtual AS virtualPayment,
           refund_virtual AS virtualRefund,
           pay_src AS paySrc,

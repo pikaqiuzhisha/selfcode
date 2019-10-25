@@ -34,8 +34,6 @@ public class RefundRecordController {
     @RequestMapping(value = "/refund_money", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<CommonResult> refund(@RequestParam String orderNumber) {
         log.debug("[orderNumber]：{}", orderNumber);
-        //声明一个订单对象
-        ChargeOrder order = new ChargeOrder();
         //声明一个退款单对象
         RefundRecord refundRecord = new RefundRecord();
 
@@ -46,20 +44,19 @@ public class RefundRecordController {
                 return new ResponseEntity<CommonResult>(CommonResult.buildResults(1, "订单号为空.", null), HttpStatus.OK);
             }
 
-            order.setOrderNumber(orderNumber);
-            order.setOrderStatus(ConstantConfig.UNCHARGEING);
-            order.setPayStatus(ConstantConfig.UNREFUND);
-
-            //更新订单的订单状态和充电状态
-            chargeOrderService.updateChargeOrder(order);
-
             //查找最近一条订单信息
             ChargeOrder chargeOrder = chargeOrderService.findByOrderNumber(orderNumber);
 
             //校验是否存在该订单信息
             if (Objects.isNull(chargeOrder)) {
-                return new ResponseEntity<CommonResult>(CommonResult.buildResults(1, "没有改订单号的订单信息.", null), HttpStatus.OK);
+                return new ResponseEntity<CommonResult>(CommonResult.buildResults(1, "没有该订单号的订单信息.", null), HttpStatus.OK);
             }
+
+            chargeOrder.setOrderStatus(ConstantConfig.UNCHARGEING);
+            chargeOrder.setPayStatus(ConstantConfig.UNREFUND);
+
+            //更新订单的订单状态和充电状态
+            chargeOrderService.updateChargeOrder(chargeOrder);
 
             String refundNumber = RefundOrderNumberGenerator.getInstance().generate(chargeOrder.getId());
 
@@ -73,15 +70,15 @@ public class RefundRecordController {
             refundRecord.setRefundStatus(ConstantConfig.REFUND);
             refundRecordService.updateRefundRecord(refundRecord);
 
-            order.setOrderStatus(ConstantConfig.FINISH_SUCCESS);
-            order.setPayStatus(ConstantConfig.REFUND);
+            chargeOrder.setOrderStatus(ConstantConfig.FINISH_SUCCESS);
+            chargeOrder.setPayStatus(ConstantConfig.REFUND);
             //更新订单的订单状态和充电状态
-            chargeOrderService.updateChargeOrder(order);
+            chargeOrderService.updateChargeOrder(chargeOrder);
         } catch (Exception ex) {
             log.warn("[Exception]：{}", ex.getMessage());
             return new ResponseEntity<CommonResult>(CommonResult.buildResults(1, "异常信息：" + ex.getMessage(), null), HttpStatus.OK);
         }
-        return new ResponseEntity<CommonResult>(CommonResult.buildResults(0, ".", null), HttpStatus.OK);
+        return new ResponseEntity<CommonResult>(CommonResult.buildResults(0, "退款成功.", null), HttpStatus.OK);
     }
 
 
