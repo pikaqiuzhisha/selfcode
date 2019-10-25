@@ -18,6 +18,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Objects;
 
 @RestController
@@ -33,6 +35,9 @@ public class RefundRecordController {
 
     @RequestMapping(value = "/refund_money", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<CommonResult> refund(@RequestParam String orderNumber) {
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+
         log.debug("[orderNumber]：{}", orderNumber);
         //声明一个退款单对象
         RefundRecord refundRecord = new RefundRecord();
@@ -58,7 +63,7 @@ public class RefundRecordController {
             //更新订单的订单状态和充电状态
             chargeOrderService.updateChargeOrder(chargeOrder);
 
-            String refundNumber = RefundOrderNumberGenerator.getInstance().generate(chargeOrder.getId());
+            String refundNumber = RefundOrderNumberGenerator.getInstance().generateRefundOrder();
 
             refundRecord.refundSetter(refundNumber, chargeOrder.getId(), chargeOrder.getUserId(), chargeOrder.getRefundAct(),
                     0, ConstantConfig.UNREFUND, 0, null);
@@ -68,6 +73,7 @@ public class RefundRecordController {
             // TODO 调微信接口
 
             refundRecord.setRefundStatus(ConstantConfig.REFUND);
+            refundRecord.setRefundAt(sdf.format(new Date()));
             refundRecordService.updateRefundRecord(refundRecord);
 
             chargeOrder.setOrderStatus(ConstantConfig.FINISH_SUCCESS);

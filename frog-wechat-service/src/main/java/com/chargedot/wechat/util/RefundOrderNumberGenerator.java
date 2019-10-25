@@ -4,6 +4,8 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Random;
+import java.util.SplittableRandom;
+import java.util.UUID;
 
 /**
  * @author Eric Gui
@@ -18,6 +20,7 @@ public class RefundOrderNumberGenerator {
             return new SimpleDateFormat(STR_TIMESTAMP);
         }
     };
+    private static final String AB = "";
 
     /**
      * count
@@ -42,6 +45,7 @@ public class RefundOrderNumberGenerator {
 
     /**
      * generate an id
+     *
      * @return 返回退款单号
      */
     public synchronized String generate(int deviceId) {
@@ -55,5 +59,27 @@ public class RefundOrderNumberGenerator {
         Random random = new Random();
         int ran = random.nextInt(90000) + 10000;
         return "C" + DF_TIMESTAMP.get().format(new Date(now)) + ran + cnt;
+    }
+
+    /**
+     * 随机生成退款单号
+     *
+     * @return 返回生成的退款单号
+     */
+    public synchronized String generateRefundOrder() {
+        // 获取系统时间
+        long now = System.currentTimeMillis();
+        // 最大支持1-9个集群机器部署 
+        int machineId = 1;
+        int hashCodeV = UUID.randomUUID().toString().hashCode();
+        // 有可能是负数 
+        if (hashCodeV < 0) {
+            hashCodeV = -hashCodeV;
+        }
+        // 生成随机数
+        Random random = new Random();
+        int ran = random.nextInt(90000) + 10000;
+        String code = String.format("%012d", hashCodeV);
+        return machineId + code + DF_TIMESTAMP.get().format(new Date(now)) + ran;
     }
 }

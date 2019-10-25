@@ -65,6 +65,11 @@ public class RefundRecord {
      */
     private String createdAt;
 
+    /**
+     * 退款时间
+     */
+    private String refundAt;
+
     public void refundSetter(String refundNumber, Integer orderId, Integer userId,
                              Integer refundMoney, Integer refundOprId, Integer refundStatus,
                              Integer refundType, String refundReason) {

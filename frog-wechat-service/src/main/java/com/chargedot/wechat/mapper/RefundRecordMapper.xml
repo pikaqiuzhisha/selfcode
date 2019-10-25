@@ -38,7 +38,10 @@
         UPDATE dw_refund_record
         <set>
             <if test="refundStatus != null">
-                refund_status=#{refundStatus}
+                refund_status=#{refundStatus},
+            </if>
+            <if test="refundAt != null">
+                refund_At=#{refundAt}
             </if>
         </set>
         WHERE refund_number=#{refundNumber} AND is_del=0
