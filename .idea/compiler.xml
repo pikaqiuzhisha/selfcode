@@ -6,11 +6,12 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
-        <module name="frog-import-service" />
-        <module name="frog-refund-service" />
-        <module name="frog-charge-service" />
         <module name="frog-eureka-service" />
         <module name="frog-gateway-service" />
+        <module name="frog-charge-service" />
+        <module name="frog-wechat-service" />
+        <module name="frog-import-service" />
+        <module name="frog-refund-service" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
@@ -20,6 +21,7 @@
       <module name="frog-gateway-service" target="1.8" />
       <module name="frog-import-service" target="1.8" />
       <module name="frog-refund-service" target="1.8" />
+      <module name="frog-wechat-service" target="1.8" />
     </bytecodeTargetLevel>
   </component>
   <component name="JavacSettings">
@@ -29,6 +31,7 @@
       <module name="frog-gateway-service" options="-parameters" />
       <module name="frog-import-service" options="-parameters" />
       <module name="frog-refund-service" options="-parameters" />
+      <module name="frog-wechat-service" options="-parameters" />
     </option>
   </component>
 </project>

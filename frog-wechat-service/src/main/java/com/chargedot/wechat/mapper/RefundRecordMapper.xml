@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.chargedot.wechat.mapper.RefundRecordMapper">
+
+    <!--得到退款记录-->
+    <select id="getRefundRecord" resultType="RefundRecord">
+        SELECT
+            drr.id AS id,
+            drr.refund_number AS refundNumber,
+            drr.order_id AS orderId,
+            dco.order_number AS orderNumber,
+            drr.user_id AS userId,
+            du.name AS userName,
+            drr.refund_money AS refundMoney,
+            drr.refund_opr_id AS refundOprId,
+            drr.refund_status AS refundStatus,
+            drr.refund_type AS refundType,
+            drr.refund_reason AS refundReason,
+            drr.created_at AS createdAt
+        FROM dw_refund_record AS drr
+        LEFT JOIN dw_charge_order AS dco ON drr.order_id=dco.id
+        LEFT JOIN dw_user AS du ON drr.user_id=du.id
+        WHERE drr.is_del=0
+        ORDER BY drr.created_at DESC
+    </select>
+
+    <!--插入一条退款记录-->
+    <insert id="insertRefundRecord" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO dw_refund_record
+          (id, refund_number, order_id, user_id, refund_money, refund_opr_id, refund_status, refund_type, refund_reason)
+        VALUES
+          (NULL, #{refundNumber}, #{orderId}, #{userId}, #{refundMoney}, #{refundOprId}, #{refundStatus}, #{refundType}, #{refundReason})
+    </insert>
+
+    <!--更新退款记录的状态-->
+    <update id="updateRefundRecord">
+        UPDATE dw_refund_record
+        <set>
+            <if test="refundStatus != null">
+                refund_status=#{refundStatus}
+            </if>
+        </set>
+        WHERE refund_number=#{refundNumber} AND is_del=0
+    </update>
+</mapper>

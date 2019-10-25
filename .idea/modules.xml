@@ -8,6 +8,7 @@
       <module fileurl="file://$PROJECT_DIR$/frog-gateway-service/frog-gateway-service.iml" filepath="$PROJECT_DIR$/frog-gateway-service/frog-gateway-service.iml" />
       <module fileurl="file://$PROJECT_DIR$/frog-import-service/frog-import-service.iml" filepath="$PROJECT_DIR$/frog-import-service/frog-import-service.iml" />
       <module fileurl="file://$PROJECT_DIR$/frog-refund-service/frog-refund-service.iml" filepath="$PROJECT_DIR$/frog-refund-service/frog-refund-service.iml" />
+      <module fileurl="file://$PROJECT_DIR$/frog-wechat-service/frog-wechat-service.iml" filepath="$PROJECT_DIR$/frog-wechat-service/frog-wechat-service.iml" />
     </modules>
   </component>
 </project>
