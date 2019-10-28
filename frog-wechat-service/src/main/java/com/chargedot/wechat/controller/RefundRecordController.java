@@ -6,7 +6,7 @@ import com.chargedot.wechat.model.ChargeOrder;
 import com.chargedot.wechat.model.RefundRecord;
 import com.chargedot.wechat.service.ChargeOrderService;
 import com.chargedot.wechat.service.RefundRecordService;
-import com.chargedot.wechat.util.RefundOrderNumberGenerator;
+import com.chargedot.wechat.util.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +21,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @RestController
 @Slf4j
@@ -71,6 +73,34 @@ public class RefundRecordController {
             refundRecordService.insertRefundRecord(refundRecord);
 
             // TODO 调微信接口
+            String param = WXPayUtil.wxPayRefund(chargeOrder.getOrderNumber(), "410110111123435671", refundNumber, chargeOrder.getPayment().toString(), chargeOrder.getRefundAct().toString());
+            log.debug("param{}", param);
+            String result = "";
+            String url = "https://api.mch.weixin.qq.com/secapi/pay/refund";
+            try {
+                result = WXPayUtil.wxPayBack(url, param);
+            } catch (Exception ex) {
+                log.warn("Exception{}", ex.getMessage());
+                ex.printStackTrace();
+            }
+
+            Pattern pattern = Pattern.compile("\\.*(\\w{" + refundNumber.length() + "})\\.*");
+            int st = result.indexOf("<refund_id>");
+            String res = "";
+            if (st >= 0) {
+                int en = result.indexOf("</refund_id>");
+                res = result.substring(st, en);
+                Matcher m = pattern.matcher(res);
+                if (m.find()) {
+                    res = m.group(1);
+                }
+                if (res.length() > 0) {
+                    result = "code:1,msg:退款成功";
+                } else {
+                    result = "code:-1,msg:退款失败";
+                }
+                return new ResponseEntity<CommonResult>(CommonResult.buildResults(1, "没有该订单号的订单信息.", result), HttpStatus.OK);
+            }
 
             refundRecord.setRefundStatus(ConstantConfig.REFUND);
             refundRecord.setRefundAt(sdf.format(new Date()));
