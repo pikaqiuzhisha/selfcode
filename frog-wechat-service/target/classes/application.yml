@@ -1,0 +1,254 @@
+#spring config
+spring:
+  profiles: local
+  application:
+    name: frog-wechat-service
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/cdot_elec_frog?useUnicode=true&characterEncoding=utf-8&useSSL=true&serverTimezone=UTC
+    username: root
+    password: chargedot
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    druid:
+      initial-size: 5
+      min-idle: 2
+      max-active: 20
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+      validation-query: SELECT 1 FROM DUAL
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+      filter:
+        stat:
+          log-slow-sql: true
+      max-wait: 30000
+  #redis config
+  redis:
+    host: 127.0.0.1
+    port: 6379
+
+#eureka config
+eureka:
+  instance:
+    prefer-ip-address: true
+  client:
+    filter-only-up-instances: true
+    registry-fetch-interval-seconds: 5
+    instance-info-replication-interval-seconds: 5
+    initial-instance-info-replication-interval-seconds: 5
+    service-url:
+      defaultZone: http://localhost:18761/eureka/
+    fetch-registry: true
+
+#server config
+server:
+  port: 7358
+
+#restTemplate time out config
+rest:
+  connectionRequestTimeout: 35000
+  readTimeout: 35000
+  connectTimeout: 35000
+
+#mybatis config
+mybatis:
+  mapper-locations: classpath:com/chargedot/wechat/mapper/*.xml
+  type-aliases-package: com.chargedot.wechat.model
+
+#logging config
+logging:
+  level:
+    com.chargedot.elecfrogservice.dao.mapper: debug
+
+---
+#spring config
+spring:
+  profiles: dev
+  application:
+    name: frog-wechat-service
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/cdot_elec_frog?useUnicode=true&characterEncoding=utf-8&useSSL=true&serverTimezone=UTC
+    username: root
+    password: chargedot
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    druid:
+      initial-size: 5
+      min-idle: 2
+      max-active: 20
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+      validation-query: SELECT 1 FROM DUAL
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+      filter:
+        stat:
+          log-slow-sql: true
+      max-wait: 30000
+  #redis config
+  redis:
+    host: 127.0.0.1
+    port: 6379
+
+#eureka config
+eureka:
+  instance:
+    prefer-ip-address: true
+  client:
+    filter-only-up-instances: true
+    registry-fetch-interval-seconds: 5
+    instance-info-replication-interval-seconds: 5
+    initial-instance-info-replication-interval-seconds: 5
+    service-url:
+      defaultZone: http://localhost:18761/eureka/
+    fetch-registry: true
+
+#server config
+server:
+  port: 7358
+
+#restTemplate time out config
+rest:
+  connectionRequestTimeout: 35000
+  readTimeout: 35000
+  connectTimeout: 35000
+
+#mybatis config
+mybatis:
+  mapper-locations: classpath:com/chargedot/wechat/mapper/*.xml
+  type-aliases-package: com.chargedot.wechat.model
+
+#logging config
+logging:
+  level:
+    com.chargedot.elecfrogservice.dao.mapper: debug
+
+---
+#spring config
+spring:
+  profiles: test
+  application:
+    name: frog-wechat-service
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/cdot_elec_frog?useUnicode=true&characterEncoding=utf-8&useSSL=true&serverTimezone=UTC
+    username: root
+    password: chargedot
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    druid:
+      initial-size: 5
+      min-idle: 2
+      max-active: 20
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+      validation-query: SELECT 1 FROM DUAL
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+      filter:
+        stat:
+          log-slow-sql: true
+      max-wait: 30000
+  #redis config
+  redis:
+    host: 127.0.0.1
+    port: 6379
+
+#eureka config
+eureka:
+  instance:
+    prefer-ip-address: true
+  client:
+    filter-only-up-instances: true
+    registry-fetch-interval-seconds: 5
+    instance-info-replication-interval-seconds: 5
+    initial-instance-info-replication-interval-seconds: 5
+    service-url:
+      defaultZone: http://localhost:18761/eureka/
+    fetch-registry: true
+
+#server config
+server:
+  port: 7358
+
+#restTemplate time out config
+rest:
+  connectionRequestTimeout: 35000
+  readTimeout: 35000
+  connectTimeout: 35000
+
+#mybatis config
+mybatis:
+  mapper-locations: classpath:com/chargedot/wechat/mapper/*.xml
+  type-aliases-package: com.chargedot.wechat.model
+
+#logging config
+logging:
+  level:
+    com.chargedot.elecfrogservice.dao.mapper: debug
+
+---
+#spring config
+spring:
+  profiles: pro
+  application:
+    name: frog-wechat-service
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/cdot_elec_frog?useUnicode=true&characterEncoding=utf-8&useSSL=true&serverTimezone=UTC
+    username: root
+    password: chargedot
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    druid:
+      initial-size: 5
+      min-idle: 2
+      max-active: 20
+      time-between-eviction-runs-millis: 60000
+      min-evictable-idle-time-millis: 300000
+      validation-query: SELECT 1 FROM DUAL
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+      filter:
+        stat:
+          log-slow-sql: true
+      max-wait: 30000
+  #redis config
+  redis:
+    host: 127.0.0.1
+    port: 6379
+
+#eureka config
+eureka:
+  instance:
+    prefer-ip-address: true
+  client:
+    filter-only-up-instances: true
+    registry-fetch-interval-seconds: 5
+    instance-info-replication-interval-seconds: 5
+    initial-instance-info-replication-interval-seconds: 5
+    service-url:
+      defaultZone: http://localhost:18761/eureka/
+    fetch-registry: true
+
+#server config
+server:
+  port: 7358
+
+#restTemplate time out config
+rest:
+  connectionRequestTimeout: 35000
+  readTimeout: 35000
+  connectTimeout: 35000
+
+#mybatis config
+mybatis:
+  mapper-locations: classpath:com/chargedot/wechat/mapper/*.xml
+  type-aliases-package: com.chargedot.wechat.model
+
+#logging config
+logging:
+  level:
+    com.chargedot.elecfrogservice.dao.mapper: debug
