@@ -9,6 +9,14 @@ import com.chargedot.wechat.service.RefundRecordService;
 import com.chargedot.wechat.util.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
+import org.apache.http.HttpEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.conn.ssl.SSLContexts;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -18,6 +26,10 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.net.ssl.SSLContext;
+import java.io.File;
+import java.io.FileInputStream;
+import java.security.KeyStore;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Objects;
@@ -71,6 +83,46 @@ public class RefundRecordController {
                     0, ConstantConfig.UNREFUND, 0, null);
 
             refundRecordService.insertRefundRecord(refundRecord);
+
+            // TODO 微信接口
+//            try{
+//                KeyStore keyStore = KeyStore.getInstance("PKCS12");
+//                FileInputStream inputStream = new FileInputStream(new File("E:\\wx\\apiclient_cert.pem"));
+//                try{
+//                    keyStore.load(inputStream, WXPayConstants.MCH_ID.toCharArray());
+//                }catch (Exception e){
+//                    e.printStackTrace();
+//                }finally {
+//                    inputStream.close();
+//                }
+//                SSLContext sslcontext = SSLContexts.custom().loadKeyMaterial(keyStore, WXPayConstants.MCH_ID.toCharArray()).build();
+//                SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
+//                        sslcontext, new String[] { "TLSv1" }, null,
+//                        SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+//                CloseableHttpClient httpclient = HttpClients.custom()
+//                        .setSSLSocketFactory(sslsf).build();
+//                HttpPost httppost = new HttpPost("https://api.mch.weixin.qq.com/secapi/pay/refund");
+//                String xml = WXPayUtil.wxPayRefund(chargeOrder.getOrderNumber(), "410110111123435671", refundNumber, chargeOrder.getPayment().toString(), String.valueOf(chargeOrder.getRefundAct() *100));
+//                try{
+//                    StringEntity se = new StringEntity(xml);
+//                    httppost.setEntity(se);
+//                    System.out.println("executing request" + httppost.getRequestLine());
+//                    CloseableHttpResponse responseEntry = httpclient.execute(httppost);
+//                    try{
+//                        HttpEntity entity = responseEntry.getEntity();
+//                        System.out.println(responseEntry.getStatusLine());
+//                        if (entity != null) {
+//
+//                        }
+//                    }catch (Exception e){
+//
+//                    }
+//                }catch (Exception e){
+//                    e.printStackTrace();
+//                }
+//            }catch (Exception e){
+//                e.printStackTrace();
+//            }
 
             // TODO 调微信接口
             String param = WXPayUtil.wxPayRefund(chargeOrder.getOrderNumber(), "410110111123435671", refundNumber, chargeOrder.getPayment().toString(), chargeOrder.getRefundAct().toString());
