@@ -1,0 +1,70 @@
+# Eureka Server Configuration
+spring:
+  profiles: local
+  application:
+     name: frog-eureka-service
+server:
+  port: 18761
+eureka:
+  environment: local
+  instance:
+    hostname: localhost
+  client:
+    serviceUrl:
+       defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
+    registerWithEureka: false
+    fetchRegistry: false
+
+---
+# Eureka Server Configuration
+spring:
+  profiles: dev
+  application:
+    name: frog-eureka-service
+server:
+  port: 18761
+eureka:
+  environment: dev
+  instance:
+    hostname: localhost
+  client:
+    serviceUrl:
+      defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
+    registerWithEureka: false
+    fetchRegistry: false
+
+---
+# Eureka Server Configuration
+spring:
+  profiles: test
+  application:
+    name: frog-eureka-service
+server:
+  port: 18761
+eureka:
+  environment: test
+  instance:
+    hostname: 172.31.172.142
+  client:
+    serviceUrl:
+      defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
+    registerWithEureka: false
+    fetchRegistry: false
+
+---
+# Eureka Server Configuration
+spring:
+  profiles: pro
+  application:
+    name: frog-eureka-service
+server:
+  port: 18761
+eureka:
+  environment: pro
+  instance:
+    hostname: localhost
+  client:
+    serviceUrl:
+      defaultZone: http://${eureka.instance.hostname}:${server.port}/eureka/
+    registerWithEureka: false
+    fetchRegistry: false
