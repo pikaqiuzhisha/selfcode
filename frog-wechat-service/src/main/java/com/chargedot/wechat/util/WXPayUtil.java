@@ -192,7 +192,7 @@ public class WXPayUtil {
         KeyStore keyStore = KeyStore.getInstance("PKCS12");
         //FileInputStream inputStream = new FileInputStream(new File("E:\\wx\\apiclient_cert.pem"));
 
-        InputStream inputStream = WXPayUtil.class.getClassLoader().getResourceAsStream("apiclient_cert.pem");
+        InputStream inputStream = WXPayUtil.class.getClassLoader().getResourceAsStream("apiclient_cert.p12");
         //FileInputStream inStream=(FileInputStream)inputStream;
         String result = "";
         try {

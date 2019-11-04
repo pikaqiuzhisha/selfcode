@@ -53,6 +53,8 @@ public class RefundRecordController {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
 
         log.debug("[orderNumber]：{}", orderNumber);
+
+        String result = "";
         //声明一个退款单对象
         RefundRecord refundRecord = new RefundRecord();
 
@@ -127,7 +129,7 @@ public class RefundRecordController {
             // TODO 调微信接口
             String param = WXPayUtil.wxPayRefund(chargeOrder.getOrderNumber(), "410110111123435671", refundNumber, chargeOrder.getPayment().toString(), chargeOrder.getRefundAct().toString());
             log.debug("param{}", param);
-            String result = "";
+
             String url = "https://api.mch.weixin.qq.com/secapi/pay/refund";
             try {
                 result = WXPayUtil.wxPayBack(url, param);
@@ -166,7 +168,7 @@ public class RefundRecordController {
             log.warn("[Exception]：{}", ex.getMessage());
             return new ResponseEntity<CommonResult>(CommonResult.buildResults(1, "异常信息：" + ex.getMessage(), null), HttpStatus.OK);
         }
-        return new ResponseEntity<CommonResult>(CommonResult.buildResults(0, "退款成功.", null), HttpStatus.OK);
+        return new ResponseEntity<CommonResult>(CommonResult.buildResults(0, "退款成功.", result), HttpStatus.OK);
     }
 
 
