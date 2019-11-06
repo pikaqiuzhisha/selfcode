@@ -61,6 +61,14 @@ logging:
   level:
     com.chargedot.elecfrogservice.dao.mapper: debug
 
+#wepay config
+wechat:
+  mpAppId: wx3d287da002d86404
+  mchId: 1510523931
+  mchKey: elecfrog201807261634363683848380
+  keyPath: E:\files\wxpay\apiclient_cert.p12
+  notifyUrl: https://weixin.qq.com/notify/
+
 ---
 #spring config
 spring:
@@ -124,6 +132,14 @@ mybatis:
 logging:
   level:
     com.chargedot.elecfrogservice.dao.mapper: debug
+
+#wepay config
+wechat:
+  mpAppId: wx3d287da002d86404
+  mchId: 1510523931
+  mchKey: elecfrog201807261634363683848380
+  keyPath: E:\files\wxpay\apiclient_cert.p12
+  notifyUrl: https://weixin.qq.com/notify/
 
 ---
 #spring config
@@ -189,6 +205,14 @@ logging:
   level:
     com.chargedot.elecfrogservice.dao.mapper: debug
 
+#wepay config
+wechat:
+  mpAppId: wx3d287da002d86404
+  mchId: 1510523931
+  mchKey: elecfrog201807261634363683848380
+  keyPath: E:\files\wxpay\apiclient_cert.p12
+  notifyUrl: https://weixin.qq.com/notify/
+
 ---
 #spring config
 spring:
@@ -252,3 +276,11 @@ mybatis:
 logging:
   level:
     com.chargedot.elecfrogservice.dao.mapper: debug
+
+#wepay config
+wechat:
+  mpAppId: wx3d287da002d86404
+  mchId: 1510523931
+  mchKey: elecfrog201807261634363683848380
+  keyPath: E:\files\wxpay\apiclient_cert.p12
+  notifyUrl: https://weixin.qq.com/notify/
