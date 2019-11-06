@@ -148,9 +148,9 @@ spring:
   application:
     name: frog-wechat-service
   datasource:
-    url: jdbc:mysql://127.0.0.1:3306/cdot_elec_frog?useUnicode=true&characterEncoding=utf-8&useSSL=true&serverTimezone=UTC
+    url: jdbc:mysql://localhost:3306/cdot_elec_frog?useUnicode=true&characterEncoding=utf-8&useSSL=true&serverTimezone=UTC
     username: root
-    password: chargedot
+    password: cfrog@1009
     type: com.alibaba.druid.pool.DruidDataSource
     driver-class-name: com.mysql.cj.jdbc.Driver
     druid:
@@ -182,7 +182,7 @@ eureka:
     instance-info-replication-interval-seconds: 5
     initial-instance-info-replication-interval-seconds: 5
     service-url:
-      defaultZone: http://localhost:18761/eureka/
+      defaultZone: http://172.19.251.245:18761/eureka/
     fetch-registry: true
 
 #server config
