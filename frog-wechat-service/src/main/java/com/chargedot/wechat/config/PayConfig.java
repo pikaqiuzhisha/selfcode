@@ -13,9 +13,6 @@ public class PayConfig {
     @Autowired
     private WechatAccountConfig accountConfig;
 
-    @Autowired
-    private AliPayAccountConfig aliPayAccountConfig;
-
     @Bean
     public WxPayConfig wxPayConfig() {
         WxPayConfig wxPayConfig = new WxPayConfig();

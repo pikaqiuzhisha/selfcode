@@ -66,7 +66,7 @@ wechat:
   mpAppId: wx3d287da002d86404
   mchId: 1510523931
   mchKey: elecfrog201807261634363683848380
-  keyPath: E:\files\wxpay\apiclient_cert.p12
+  keyPath: C:\Users\Administrator.DESKTOP-IQ8AUFF\Desktop\apiclient_cert.p12
   notifyUrl: https://weixin.qq.com/notify/
 
 ---

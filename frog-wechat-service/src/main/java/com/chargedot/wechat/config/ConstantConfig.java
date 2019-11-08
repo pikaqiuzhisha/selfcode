@@ -109,6 +109,7 @@ public class ConstantConfig {
     public static final int REFUND = 4;
     public static final int INVOICED = 5;
     public static final int UNREFUND = 6;
+    public static final int REFUNDING = 7;
 
 
     /**

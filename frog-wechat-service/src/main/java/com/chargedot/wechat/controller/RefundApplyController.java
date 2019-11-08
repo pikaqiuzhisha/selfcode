@@ -29,7 +29,7 @@ import java.util.Objects;
 @RestController
 @Slf4j
 @RequestMapping("/refund")
-public class RefundRecordController {
+public class RefundApplyController {
 
     @Autowired
     private RefundRecordService refundRecordService;
@@ -57,10 +57,8 @@ public class RefundRecordController {
             if (StringUtils.isBlank(orderNumber)) {
                 return new ResponseEntity<CommonResult>(CommonResult.buildResults(1, "订单号为空.", null), HttpStatus.OK);
             }
-
             //查找最近一条订单信息
             ChargeOrder chargeOrder = chargeOrderService.findByOrderNumber(orderNumber);
-
             //校验是否存在该订单信息
             if (Objects.isNull(chargeOrder)) {
                 return new ResponseEntity<CommonResult>(CommonResult.buildResults(1, "没有该订单号的订单信息.", null), HttpStatus.OK);
@@ -79,18 +77,17 @@ public class RefundRecordController {
 
             refundRecordService.insertRefundRecord(refundRecord);
 
-            // TODO 调微信接口
+            // TODO 调微信退款接口
             RefundRequest request = new RefundRequest();
             request.setOrderId(chargeOrder.getOrderNumber());
             request.setPayTypeEnum(BestPayTypeEnum.WXPAY_MINI);
-            request.setOrderAmount((double)chargeOrder.getRefundAct());
+            request.setOrderAmount((double) chargeOrder.getRefundAct());
             response = bestPayService.refund(request);
 
             // 更改状态
-            refundRecord.setRefundStatus(ConstantConfig.REFUND);
+            refundRecord.setRefundStatus(ConstantConfig.REFUNDING);
             refundRecord.setRefundAt(sdf.format(new Date()));
             refundRecordService.updateRefundRecord(refundRecord);
-
             chargeOrder.setOrderStatus(ConstantConfig.FINISH_SUCCESS);
             chargeOrder.setPayStatus(ConstantConfig.REFUND);
             //更新订单的订单状态和充电状态
@@ -101,6 +98,5 @@ public class RefundRecordController {
         }
         return new ResponseEntity<CommonResult>(CommonResult.buildResults(0, "退款成功.", response), HttpStatus.OK);
     }
-
 
 }
