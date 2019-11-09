@@ -6,13 +6,13 @@ import com.chargedot.wechat.model.ChargeOrder;
 import com.chargedot.wechat.model.RefundRecord;
 import com.chargedot.wechat.service.ChargeOrderService;
 import com.chargedot.wechat.service.RefundRecordService;
-import com.chargedot.wechat.util.*;
-import com.lly835.bestpay.enums.BestPayTypeEnum;
-import com.lly835.bestpay.model.RefundRequest;
-import com.lly835.bestpay.model.RefundResponse;
-import com.lly835.bestpay.service.BestPayService;
+import com.chargedot.wechat.util.RefundOrderNumberGenerator;
+import com.github.binarywang.wxpay.bean.request.WxPayRefundRequest;
+import com.github.binarywang.wxpay.bean.result.WxPayRefundResult;
+import com.github.binarywang.wxpay.service.WxPayService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
+import org.apache.logging.log4j.util.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -25,12 +25,10 @@ import org.springframework.web.bind.annotation.RestController;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Objects;
-
 @RestController
 @Slf4j
-@RequestMapping("/refund")
+@RequestMapping("/refundapply")
 public class RefundApplyController {
-
     @Autowired
     private RefundRecordService refundRecordService;
 
@@ -38,7 +36,7 @@ public class RefundApplyController {
     private ChargeOrderService chargeOrderService;
 
     @Autowired
-    private BestPayService bestPayService;
+    private WxPayService payService;
 
     @RequestMapping(value = "/refund_money", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<CommonResult> refund(@RequestParam String orderNumber) {
@@ -47,10 +45,9 @@ public class RefundApplyController {
 
         log.debug("[orderNumber]：{}", orderNumber);
 
-        RefundResponse response = null;
+
         //声明一个退款单对象
         RefundRecord refundRecord = new RefundRecord();
-
         //异常处理
         try {
             //校验参数是否有值
@@ -63,7 +60,6 @@ public class RefundApplyController {
             if (Objects.isNull(chargeOrder)) {
                 return new ResponseEntity<CommonResult>(CommonResult.buildResults(1, "没有该订单号的订单信息.", null), HttpStatus.OK);
             }
-
             chargeOrder.setOrderStatus(ConstantConfig.UNCHARGEING);
             chargeOrder.setPayStatus(ConstantConfig.UNREFUND);
 
@@ -76,27 +72,49 @@ public class RefundApplyController {
                     0, ConstantConfig.UNREFUND, 0, null);
 
             refundRecordService.insertRefundRecord(refundRecord);
-
-            // TODO 调微信退款接口
-            RefundRequest request = new RefundRequest();
+            /**
+             * 调微信申请退款接口
+             */
+          /*  RefundRequest request = new RefundRequest();
             request.setOrderId(chargeOrder.getOrderNumber());
             request.setPayTypeEnum(BestPayTypeEnum.WXPAY_MINI);
             request.setOrderAmount((double) chargeOrder.getRefundAct());
-            response = bestPayService.refund(request);
-
+            response = bestPayService.refund(request);*/
+            WxPayRefundResult result = this.payService.refund(
+                    WxPayRefundRequest.newBuilder()
+                            .outRefundNo("")
+                            .outTradeNo("")
+                            .totalFee(1222)
+                            .refundFee(111)
+                            .build());
+            this.log.info(result.toString());
+            if (!"SUCCESS".equals(result.getReturnCode())) {
+                String returnMsg = result.getReturnMsg();
+                if (Strings.isEmpty(returnMsg))
+                    returnMsg = "微信退款申请接口提交失败";
+                return new ResponseEntity<CommonResult>(
+                        CommonResult.buildResults(1, returnMsg, null), HttpStatus.OK);
+            }
+            if (!"SUCCESS".equals(result.getResultCode())) {
+                String errorMsg = result.getErrCodeDes()+"[error_code-"+result.getErrCode()
+                        +"]";
+                if (Strings.isEmpty(errorMsg))
+                    errorMsg = "微信退款申请业务提交失败";
+                return new ResponseEntity<CommonResult>(
+                        CommonResult.buildResults(1, errorMsg, null), HttpStatus.OK);
+            }
             // 更改状态
             refundRecord.setRefundStatus(ConstantConfig.REFUNDING);
             refundRecord.setRefundAt(sdf.format(new Date()));
             refundRecordService.updateRefundRecord(refundRecord);
             chargeOrder.setOrderStatus(ConstantConfig.FINISH_SUCCESS);
-            chargeOrder.setPayStatus(ConstantConfig.REFUND);
+            chargeOrder.setPayStatus(ConstantConfig.REFUNDING);
             //更新订单的订单状态和充电状态
             chargeOrderService.updateChargeOrder(chargeOrder);
         } catch (Exception ex) {
             log.warn("[Exception]：{}", ex.getMessage());
-            return new ResponseEntity<CommonResult>(CommonResult.buildResults(1, "异常信息：" + ex.getMessage(), null), HttpStatus.OK);
+            return new ResponseEntity<CommonResult>(CommonResult.buildResults(1, "异常信息" + ex.getMessage(), null), HttpStatus.OK);
         }
-        return new ResponseEntity<CommonResult>(CommonResult.buildResults(0, "退款成功.", response), HttpStatus.OK);
+        return new ResponseEntity<CommonResult>(CommonResult.buildResults(0, "进入退款中状态",null ), HttpStatus.OK);
     }
-
 }

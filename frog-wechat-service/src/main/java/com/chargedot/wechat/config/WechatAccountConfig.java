@@ -5,8 +5,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 /**
- * Created by 廖师兄
- * 2017-07-11 23:18
+ *
  */
 @Data
 @ConfigurationProperties(prefix = "wechat")
