@@ -2,6 +2,7 @@ package com.chargedot.wechat.mapper;
 
 import com.chargedot.wechat.model.RefundRecord;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -28,4 +29,7 @@ public interface RefundRecordMapper {
      * @param refundRecord 退款记录对象
      */
     void updateRefundRecord(RefundRecord refundRecord);
+
+
+    RefundRecord getRefundRecordByOrderId(@Param("outTradeNo") String outTradeNo);
 }

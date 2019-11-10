@@ -26,4 +26,11 @@ public interface RefundRecordService {
      * @param refundRecord 退款记录对象
      */
     void updateRefundRecord(RefundRecord refundRecord);
+
+    /**
+     * 通过订单ID查询退款记录
+     * @param outTradeNo
+     * @return
+     */
+    RefundRecord getRefundRecordByOrderId(String outTradeNo);
 }

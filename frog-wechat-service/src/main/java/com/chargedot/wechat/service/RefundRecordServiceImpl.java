@@ -4,6 +4,7 @@ import com.chargedot.wechat.mapper.RefundRecordMapper;
 import com.chargedot.wechat.model.RefundRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -19,12 +20,19 @@ public class RefundRecordServiceImpl implements RefundRecordService {
     }
 
     @Override
+    @Transactional
     public void insertRefundRecord(RefundRecord refundRecord) {
         refundRecordMapper.insertRefundRecord(refundRecord);
     }
 
     @Override
+    @Transactional
     public void updateRefundRecord(RefundRecord refundRecord) {
         refundRecordMapper.updateRefundRecord(refundRecord);
+    }
+
+    @Override
+    public RefundRecord getRefundRecordByOrderId(String outTradeNo) {
+        return refundRecordMapper.getRefundRecordByOrderId(outTradeNo);
     }
 }

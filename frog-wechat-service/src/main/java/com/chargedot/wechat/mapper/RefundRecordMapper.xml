@@ -46,4 +46,25 @@
         </set>
         WHERE refund_number=#{refundNumber} AND is_del=0
     </update>
+
+    <select id="getRefundRecord" resultType="RefundRecord">
+        SELECT
+            drr.id AS id,
+            drr.refund_number AS refundNumber,
+            drr.order_id AS orderId,
+            dco.order_number AS orderNumber,
+            drr.user_id AS userId,
+            du.name AS userName,
+            drr.refund_money AS refundMoney,
+            drr.refund_opr_id AS refundOprId,
+            drr.refund_status AS refundStatus,
+            drr.refund_type AS refundType,
+            drr.refund_reason AS refundReason,
+            drr.created_at AS createdAt
+        FROM dw_refund_record AS drr
+        LEFT JOIN dw_charge_order AS dco ON drr.order_id=dco.id
+        LEFT JOIN dw_user AS du ON drr.user_id=du.id
+        WHERE drr.is_del=0
+        AND drr.order_id = #{outTradeNo}
+    </select>
 </mapper>

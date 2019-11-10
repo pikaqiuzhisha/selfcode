@@ -11,6 +11,7 @@ public class PayConfig {
     private WechatAccountConfig accountConfig;
     @Autowired
     private WxPayConfig wxPayConfig;
+
     @Bean
     public WxPayConfig wxPayConfig() {
         WxPayConfig wxPayConfig = new WxPayConfig();
