@@ -1,6 +1,5 @@
 package com.chargedot.wechat.controller;
 
-import com.alibaba.druid.support.json.JSONUtils;
 import com.chargedot.wechat.controller.vo.CommonResult;
 import com.chargedot.wechat.controller.vo.RefundRecord;
 import com.chargedot.wechat.model.ChargeOrder;
@@ -17,11 +16,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import java.text.SimpleDateFormat;
 
 @RestController
 @Slf4j
-@RequestMapping("/refundapply")
+@RequestMapping("/refund_apply")
 public class RefundApplyController {
     @Autowired
     private RefundRecordService refundRecordService;
@@ -33,11 +33,8 @@ public class RefundApplyController {
     private WxPayService payService;
 
 
-
-
     @RequestMapping(value = "/wx_apply", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public ResponseEntity<CommonResult> refund(@RequestBody String refundRecord) {
-//        payService.getConfig().setUseSandboxEnv(true);
 
         //校验参数
         if (org.apache.commons.lang3.StringUtils.isBlank(refundRecord)) {
@@ -48,20 +45,8 @@ public class RefundApplyController {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
         //异常处理
         try {
-           /*
-         //微信方式校验是否重复退款
-           WxPayRefundQueryRequest wxPayRefundQueryRequest = new WxPayRefundQueryRequest();
-            BeanUtils.copyProperties(rd,WxPayRefundQueryData);
-            WxPayRefundQueryResult wxPayRefundQueryResult = wxService.refundQuery(wxPayRefundQueryRequest);
-            List<WxPayRefundQueryResult.RefundRecord> refundRecords = wxPayRefundQueryResult.getRefundRecords();
-            for (WxPayRefundQueryResult.RefundRecord record : refundRecords) {
-//                退款状态：SUCCESS—退款成功 REFUNDCLOSE—退款关闭。
-                if ("SUCCESS".equals(record.getRefundStatus())||"REFUNDCLOSE".equals(record.getRefundStatus())) {
-                    return new ResponseEntity<CommonResult>(CommonResult.buildResults(1, "请不要重复退款.", null), HttpStatus.OK);
-                }
-            }*/
 
-/*
+            /*
             //校验退款金额是否合理
             if (Integer.compare(rd.getTotalFee(),rd.getRefundFee()) == -1) {
                 return new ResponseEntity<CommonResult>(CommonResult.buildResults(1, "退款总金额大于订单金额.", null), HttpStatus.OK);
@@ -80,8 +65,6 @@ public class RefundApplyController {
                     .build();
             WxPayRefundResult result = this.payService.refund(
                     request);
-          //  log.info("[WxPayRefundResult]：{}", JSONUtils.toJSONString(result));
-            System.out.println(result.getReturnCode());
 
             if (!"SUCCESS".equals(result.getReturnCode())) {
                 String returnMsg = result.getReturnMsg();
@@ -91,8 +74,8 @@ public class RefundApplyController {
                         CommonResult.buildResults(1, returnMsg, null), HttpStatus.OK);
             }
             if (!"SUCCESS".equals(result.getResultCode())) {
-                String errorMsg = result.getErrCodeDes()+"[error_code-"+result.getErrCode()
-                        +"]";
+                String errorMsg = result.getErrCodeDes() + "[error_code-" + result.getErrCode()
+                        + "]";
                 if (Strings.isEmpty(errorMsg))
                     errorMsg = "微信退款申请业务提交失败";
                 return new ResponseEntity<CommonResult>(
@@ -112,11 +95,11 @@ public class RefundApplyController {
             refundRecord.setRefundStatus(ConstantConfig.REFUNDING);
             refundRecord.setRefundAt(sdf.format(new Date()));
             refundRecordService.insertRefundRecord(refundRecord);
-*/
+            */
         } catch (Exception ex) {
             log.info("[Exception]：{}", ex.getMessage());
             return new ResponseEntity<CommonResult>(CommonResult.buildResults(1, "异常信息" + ex.getMessage(), null), HttpStatus.OK);
         }
-        return new ResponseEntity<CommonResult>(CommonResult.buildResults(0, "进入退款中状态",null ), HttpStatus.OK);
+        return new ResponseEntity<CommonResult>(CommonResult.buildResults(0, "进入退款中状态", null), HttpStatus.OK);
     }
 }

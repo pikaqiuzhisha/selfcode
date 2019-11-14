@@ -2,21 +2,17 @@ package com.chargedot.wechat.controller;
 
 import com.alibaba.druid.support.json.JSONUtils;
 import com.chargedot.wechat.config.ConstantConfig;
-import com.chargedot.wechat.controller.vo.CommonResult;
 import com.chargedot.wechat.model.ChargeOrder;
 import com.chargedot.wechat.model.RefundRecord;
 import com.chargedot.wechat.service.ChargeOrderService;
 import com.chargedot.wechat.service.RefundRecordService;
-import com.chargedot.wechat.util.RefundOrderNumberGenerator;
 import com.github.binarywang.wxpay.bean.notify.WxPayNotifyResponse;
 import com.github.binarywang.wxpay.bean.notify.WxPayRefundNotifyResult;
 import com.github.binarywang.wxpay.exception.WxPayException;
 import com.github.binarywang.wxpay.service.WxPayService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,12 +20,10 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Objects;
 
 @RestController
 @Slf4j
-@RequestMapping("/refundnotify")
+@RequestMapping("/refund_notify")
 public class RefundNotifyController {
 
     @Autowired
@@ -53,7 +47,7 @@ public class RefundNotifyController {
             ChargeOrder chargeOrder = chargeOrderService.findByOrderNumber(result.getReqInfo().getOutTradeNo());
 
             //是否是重复退款通知
-            if (ConstantConfig.REFUND ==chargeOrder.getPayStatus()) {
+            if (ConstantConfig.REFUND == chargeOrder.getPayStatus()) {
                 return WxPayNotifyResponse.success("成功");
             }
             //更新数据库退款状态

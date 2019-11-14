@@ -23,7 +23,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
-
 import javax.annotation.PostConstruct;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
@@ -392,7 +391,7 @@ public class RequestHandler {
             log.warn("[ReportStartChargeRequest][{}]invalid port({}) number", deviceNumber, port);
             return;
         }
-
+//TODO   可能会产生refundrecord
         int status = startChargeRequest.getStatus();
         if (status == ConstantConfig.FAILURE) { // 启动失败 全部退款
             String sequenceNumber = SequenceNumberGengerator.getInstance().generate(1000 * (long) startChargeRequest.getTimeStamp(),
@@ -419,18 +418,15 @@ public class RequestHandler {
                 // 使用余额支付
                 boolean refund = true;
                 int actPayment = 0;
-
                 if (refund) {
                     // 实际退款
                     int payment = chargeOrder.getPayment();
                     int refundTotal = payment - actPayment;
                     int orderType = ConstantConfig.ORDER_TYPE_EXCEPTION;
-
                     int paymentAct = chargeOrder.getPaymentAct();
                     int refundAct = 0;
                     int virtualPayment = chargeOrder.getVirtualPayment();
                     int virtualRefund = 0;
-
                     if (chargeOrder.getPayType() == ConstantConfig.PAY_BY_BALANCE) {
                         // 根据扣款类型进行退款
                         if (chargeOrder.getPaySrc() == ConstantConfig.PAY_SRC_REAL) {
@@ -446,6 +442,8 @@ public class RequestHandler {
                             paymentAct = 0;
                         }
                     } else if (chargeOrder.getPayType() == ConstantConfig.PAY_BY_ALIPAY || chargeOrder.getPayType() == ConstantConfig.PAY_BY_WEIPAY) {
+
+
                         refundAct = refundTotal;
                         paymentAct = 0;
                     }
