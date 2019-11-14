@@ -68,13 +68,8 @@
             <optional>true</optional>
         </dependency>
         <dependency>
-            <groupId>cn.springboot</groupId>
-            <artifactId>best-pay-sdk</artifactId>
-        </dependency>
-        <dependency>
             <groupId>com.github.binarywang</groupId>
             <artifactId>weixin-java-pay</artifactId>
-            <version>3.5.0</version>
         </dependency>
     </dependencies>
 

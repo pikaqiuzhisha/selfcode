@@ -6,12 +6,16 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-public class PayConfig {
+public class PayConfig extends WxPayConfig{
     @Autowired
     private WechatAccountConfig accountConfig;
     @Autowired
     private WxPayConfig wxPayConfig;
-
+    /**
+     * 微信支付是否使用仿真测试环境.
+     * 默认不使用
+     */
+//    private boolean useSandboxEnv = true;
     @Bean
     public WxPayConfig wxPayConfig() {
         WxPayConfig wxPayConfig = new WxPayConfig();

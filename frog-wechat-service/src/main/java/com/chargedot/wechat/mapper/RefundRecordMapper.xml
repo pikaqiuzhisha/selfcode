@@ -47,7 +47,7 @@
         WHERE refund_number=#{refundNumber} AND is_del=0
     </update>
 
-    <select id="getRefundRecord" resultType="RefundRecord">
+    <select id="getRefundRecordByOrderId" resultType="RefundRecord">
         SELECT
             drr.id AS id,
             drr.refund_number AS refundNumber,

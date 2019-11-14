@@ -18,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -41,8 +42,8 @@ public class RefundNotifyController {
     private RefundRecordService refundRecordService;
 
     @Transactional
-    @RequestMapping(value = "/refund_notify", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
-    public String parseRefundNotifyResult(String xmlData) throws WxPayException {
+    @RequestMapping(value = "/wx_notify", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+    public String parseRefundNotifyResult(@RequestBody String xmlData) throws WxPayException {
         try {
             log.info("微信支付退款异步通知参数：{}", xmlData);
             WxPayRefundNotifyResult result = WxPayRefundNotifyResult.fromXML(xmlData, payService.getConfig().getMchKey());
@@ -59,7 +60,6 @@ public class RefundNotifyController {
             //更新订单表数据库退款状态
             chargeOrder.setPayStatus(ConstantConfig.REFUND);
             chargeOrderService.updateChargeOrder(chargeOrder);
-
             //更新插入退款记录表
             RefundRecord refundRecord = refundRecordService.getRefundRecordByOrderId(result.getReqInfo().getOutTradeNo());
             refundRecord.setRefundStatus(ConstantConfig.REFUND);
@@ -67,7 +67,6 @@ public class RefundNotifyController {
             refundRecord.setRefundAt(sdf.format(result.getReqInfo().getSuccessTime()));
             refundRecord.setRefundMoney(result.getReqInfo().getSettlementRefundFee());
             refundRecordService.updateRefundRecord(refundRecord);
-
             return WxPayNotifyResponse.success("成功");
         } catch (Exception e) {
             log.error(e.getMessage(), e);

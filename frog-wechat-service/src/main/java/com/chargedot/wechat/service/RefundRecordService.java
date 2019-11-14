@@ -1,6 +1,7 @@
 package com.chargedot.wechat.service;
 
 import com.chargedot.wechat.model.RefundRecord;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 
