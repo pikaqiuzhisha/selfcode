@@ -9,20 +9,16 @@ import com.chargedot.refund.handler.request.CheckInRequest;
 import com.chargedot.refund.handler.request.Request;
 import com.chargedot.refund.handler.request.StartChargeRequest;
 import com.chargedot.refund.handler.request.StopChargeRequest;
-import com.chargedot.refund.mapper.ChargeCertMapper;
-import com.chargedot.refund.mapper.ChargeOrderMapper;
-import com.chargedot.refund.mapper.ChargeStreamMapper;
-import com.chargedot.refund.mapper.DevicePortMapper;
+import com.chargedot.refund.mapper.*;
 import com.chargedot.refund.model.*;
-import com.chargedot.refund.util.HttpRequestUtil;
-import com.chargedot.refund.util.JacksonUtil;
-import com.chargedot.refund.util.MapUtil;
-import com.chargedot.refund.util.SequenceNumberGengerator;
+import com.chargedot.refund.util.*;
 import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
+
 import javax.annotation.PostConstruct;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
@@ -35,7 +31,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * @author gmm
- *
  */
 @Slf4j
 public class RequestHandler {
@@ -63,6 +58,12 @@ public class RequestHandler {
 
     @Autowired
     private ChargeStreamMapper chargeStreamMapper;
+
+    @Autowired
+    private RefundRecordMapper refundRecordMapper;
+
+    @Autowired
+    RestTemplate restTemplate;
 
     /**
      *
@@ -128,6 +129,7 @@ public class RequestHandler {
 
     /**
      * 设备登陆签到
+     *
      * @param request
      */
     @Transactional
@@ -207,24 +209,24 @@ public class RequestHandler {
 
                             if (refund) {
                                 // 实际退款
-                                int payment = chargeOrder.getPayment();
+                                int payment = chargeOrder.getPayment();//Payment预收金额
                                 int refundTotal = payment - actPayment;
-                                int orderType = ConstantConfig.ORDER_TYPE_EXCEPTION;
+                                int orderType = ConstantConfig.ORDER_TYPE_EXCEPTION;//订单类型异常?
 
-                                int paymentAct = chargeOrder.getPaymentAct();
-                                int refundAct = 0;
-                                int virtualPayment = chargeOrder.getVirtualPayment();
-                                int virtualRefund = 0;
+                                int paymentAct = chargeOrder.getPaymentAct();//PaymentAct实账支付费用
+                                int refundAct = 0;//实账退款
+                                int virtualPayment = chargeOrder.getVirtualPayment();//VirtualPayment虚拟账户支付费用
+                                int virtualRefund = 0;//virtualRefund虚账退款
 
-                                if (chargeOrder.getPayType() == ConstantConfig.PAY_BY_BALANCE) {
+                                if (chargeOrder.getPayType() == ConstantConfig.PAY_BY_BALANCE) {//余额支付时
                                     // 根据扣款类型进行退款
-                                    if (chargeOrder.getPaySrc() == ConstantConfig.PAY_SRC_REAL) {
-                                        refundAct = paymentAct - actPayment;
+                                    if (chargeOrder.getPaySrc() == ConstantConfig.PAY_SRC_REAL) {//扣款来源来自实账的话
+                                        refundAct = paymentAct - actPayment;//退款金额=实账支付费用-实际支付费用
                                         paymentAct = actPayment;
-                                    } else {
-                                        if (refundAll) {
-                                            if (chargeOrder.getPaySrc() == ConstantConfig.PAY_SRC_VIRTUAL) {
-                                                virtualRefund = virtualPayment;
+                                    } else {//扣款来自虚张
+                                        if (refundAll) {//全额退款情况下
+                                            if (chargeOrder.getPaySrc() == ConstantConfig.PAY_SRC_VIRTUAL) {//扣款来源来自虚张的话
+                                                virtualRefund = virtualPayment;//
                                                 virtualPayment = virtualPayment - virtualRefund;
                                             } else {
                                                 virtualRefund = virtualPayment;
@@ -232,11 +234,11 @@ public class RequestHandler {
                                                 refundAct = paymentAct;
                                                 paymentAct = 0;
                                             }
-                                        } else {
-                                            if (refundTotal <= virtualPayment) {
+                                        } else {//非全额退款情况下
+                                            if (refundTotal <= virtualPayment) {//virtualPayment虚拟账户支付费用
                                                 virtualRefund = refundTotal;
                                                 virtualPayment = virtualPayment - virtualRefund;
-                                            } else {
+                                            } else {//
                                                 paymentAct = paymentAct - (refundTotal - virtualPayment);
                                                 virtualPayment = 0;
                                                 virtualRefund = refundTotal;
@@ -244,29 +246,42 @@ public class RequestHandler {
                                         }
                                     }
                                 } else if (chargeOrder.getPayType() == ConstantConfig.PAY_BY_ALIPAY || chargeOrder.getPayType() == ConstantConfig.PAY_BY_WEIPAY) {
-                                    refundAct = paymentAct - actPayment;
+                                    refundAct = paymentAct - actPayment;//实账退款=实账支付-实际支付
                                     paymentAct = actPayment;
+
                                 }
 
-                                if (chargeOrder.getOrderStatus() == ConstantConfig.CREATED || chargeOrder.getOrderStatus() == ConstantConfig.ONGOING) {
-                                    chargeOrder.setFinishedAt(now);
+                                if (chargeOrder.getOrderStatus() == ConstantConfig.CREATED || chargeOrder.getOrderStatus() == ConstantConfig.ONGOING) {//订单状态为已创建或创建中
+                                    chargeOrder.setFinishedAt(now);//
                                 }
-                                chargeOrder.setChargeFinishReason(ReasonUserCode.DEVICE_RESTART.getDescribe());
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                                //异常订单
+                                chargeOrder.setChargeFinishReason(ReasonUserCode.DEVICE_RESTART.getDescribe());//获取
                                 chargeOrder.refundSetter(chargeOrder.getPayment(), paymentAct, virtualPayment, refundAct, virtualRefund, orderType, ConstantConfig.REFUND, ConstantConfig.FINISH_SUCCESS, now);
 
                                 chargeOrderMapper.refundUpdate(chargeOrder);
                                 log.info("[ReportStopChargeRequest][{}]order({}) refund update, refundAct({}), actPayment({})",
                                         deviceNumber, chargeOrder.getOrderNumber(), refundAct, actPayment);
-
+/////////////////////////////////////////////////////////////////////////////////////////////////////
                                 // 退款流水
-                                int curValue = chargeCert.getCurValue() + virtualRefund;
-                                int curRealValue = chargeCert.getRealValue() + refundAct;
+                                /**
+                                 * 当支付方式为支付宝或微信时实账余额应为余额,调用微信退款接口将微信退款的金额原路返回
+                                 */
+                                if (chargeCert.getType() == ConstantConfig.PAY_BY_WEIPAY || chargeCert.getType() == ConstantConfig.PAY_BY_ALIPAY) {
+                                    int curValue = chargeCert.getCurValue() + virtualRefund - refundAct;
+                                    int curRealValue = chargeCert.getRealValue() - refundAct;//实账余额为
+                                    int refundMoney = refundAct - actPayment;//退款金额
+                                    RefundRecord refundRecord = new RefundRecord();
+
+                                }
+                                int curValue = chargeCert.getCurValue() + virtualRefund;   //CurValue     当前剩余有效次数或者有效时长，或者虚拟账户余额
+                                int curRealValue = chargeCert.getRealValue() + refundAct;//
                                 ChargeStream chargeStream = new ChargeStream();
                                 int operatorSrc = 0;
                                 if (chargeCert.getType() == ConstantConfig.CERT_OF_PHONE) {
-                                    operatorSrc = ConstantConfig.OPERATOR_SRC_APP;
+                                    operatorSrc = ConstantConfig.OPERATOR_SRC_APP;//小程序支付
                                 } else {
-                                    operatorSrc = ConstantConfig.OPERATOR_SRC_CARD;
+                                    operatorSrc = ConstantConfig.OPERATOR_SRC_CARD;//卡支付
                                 }
                                 chargeStream.setter(chargeOrder.getId(), chargeCert.getId(), chargeCert.getUserId(), chargeCert.getBeginedAt(), chargeCert.getFinishedAt(),
                                         ConstantConfig.STREAM_TYPE_REFOUND, refundAct, chargeCert.getCurValue(), virtualRefund, curValue, chargeCert.getRealValue(), refundAct, curRealValue,
@@ -365,6 +380,7 @@ public class RequestHandler {
 
     /**
      * 开始充电结果上报
+     *
      * @param request
      */
     @Transactional
@@ -376,6 +392,9 @@ public class RequestHandler {
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         String now = simpleDateFormat.format(date);
         String port = startChargeRequest.getPort();
+
+        //退款对象
+        RefundRecord refundRecord = null;
 
         if (StringUtils.isNotBlank(port)) {
             if (ConstantConfig.PORT_ALL.equals(port) || ConstantConfig.PORT_SINGLE.equals(port)) {
@@ -391,7 +410,6 @@ public class RequestHandler {
             log.warn("[ReportStartChargeRequest][{}]invalid port({}) number", deviceNumber, port);
             return;
         }
-//TODO   可能会产生refundrecord
         int status = startChargeRequest.getStatus();
         if (status == ConstantConfig.FAILURE) { // 启动失败 全部退款
             String sequenceNumber = SequenceNumberGengerator.getInstance().generate(1000 * (long) startChargeRequest.getTimeStamp(),
@@ -442,10 +460,24 @@ public class RequestHandler {
                             paymentAct = 0;
                         }
                     } else if (chargeOrder.getPayType() == ConstantConfig.PAY_BY_ALIPAY || chargeOrder.getPayType() == ConstantConfig.PAY_BY_WEIPAY) {
-
-
                         refundAct = refundTotal;
                         paymentAct = 0;
+                        //生成退款单号
+                        String refundNumber = RefundOrderNumberGenerator.getInstance().generateRefundOrder();
+                        refundRecord.refundSetter(refundNumber, chargeOrder.getId(), chargeOrder.getUserId(), refundAct, 0, ConstantConfig.UNREFUND, 0, null);
+                        refundRecordMapper.insertRefundRecord(refundRecord);
+
+                        //更改订单信息
+                        if (chargeOrder.getOrderStatus() == ConstantConfig.CREATED || chargeOrder.getOrderStatus() == ConstantConfig.ONGOING) {
+                            chargeOrder.setFinishedAt(now);
+                        }
+                        chargeOrder.setChargeFinishReason(ReasonUserCode.CHARGE_FAILURE.getDescribe());
+                        chargeOrder.refundSetter(chargeOrder.getPayment(), paymentAct, virtualPayment, refundAct, virtualRefund, orderType, ConstantConfig.UNREFUND, ConstantConfig.FINISH_SUCCESS, now);
+                        chargeOrderMapper.refundUpdate(chargeOrder);
+
+                        String result = restTemplate.postForObject("http://frog-wechat-service/refund_apply/wx_apply", null, String.class, refundNumber);
+
+
                     }
 
                     if (chargeOrder.getOrderStatus() == ConstantConfig.CREATED || chargeOrder.getOrderStatus() == ConstantConfig.ONGOING) {
@@ -504,6 +536,7 @@ public class RequestHandler {
 
     /**
      * 停止充电结果上报
+     *
      * @param request
      */
     @Transactional
@@ -619,32 +652,36 @@ public class RequestHandler {
 
                         if (chargeOrder.getPayType() == ConstantConfig.PAY_BY_BALANCE) {
                             // 根据扣款类型进行退款
-                            if (chargeOrder.getPaySrc() == ConstantConfig.PAY_SRC_REAL) {
-                                refundAct = paymentAct - actPayment;
-                                paymentAct = actPayment;
-                                log.info("[PAY_SRC_REAL]refundAct({}), paymentAct({})", refundAct, paymentAct);
-                            } else {
-                                if (refundAll) {
-                                    if (chargeOrder.getPaySrc() == ConstantConfig.PAY_SRC_VIRTUAL) {
-                                        virtualRefund = virtualPayment;
-                                        virtualPayment = virtualPayment - virtualRefund;
-                                    } else {
-                                        virtualRefund = virtualPayment;
-                                        virtualPayment = 0;
-                                        refundAct = paymentAct;
-                                        paymentAct = 0;
-                                    }
+                            if (chargeOrder.getPayType() != ConstantConfig.PAY_BY_ALIPAY || chargeOrder.getPayType() != ConstantConfig.PAY_BY_WEIPAY) {
+
+
+                                if (chargeOrder.getPaySrc() == ConstantConfig.PAY_SRC_REAL) {
+                                    refundAct = paymentAct - actPayment;
+                                    paymentAct = actPayment;
+                                    log.info("[PAY_SRC_REAL]refundAct({}), paymentAct({})", refundAct, paymentAct);
                                 } else {
-                                    if (refundTotal <= virtualPayment) {
-                                        virtualRefund = refundTotal;
-                                        virtualPayment = virtualPayment - virtualRefund;
+                                    if (refundAll) {
+                                        if (chargeOrder.getPaySrc() == ConstantConfig.PAY_SRC_VIRTUAL) {
+                                            virtualRefund = virtualPayment;
+                                            virtualPayment = virtualPayment - virtualRefund;
+                                        } else {
+                                            virtualRefund = virtualPayment;
+                                            virtualPayment = 0;
+                                            refundAct = paymentAct;
+                                            paymentAct = 0;
+                                        }
                                     } else {
-                                        paymentAct = paymentAct - (refundTotal - virtualPayment);
-                                        virtualPayment = 0;
-                                        virtualRefund = refundTotal;
+                                        if (refundTotal <= virtualPayment) {
+                                            virtualRefund = refundTotal;
+                                            virtualPayment = virtualPayment - virtualRefund;
+                                        } else {
+                                            paymentAct = paymentAct - (refundTotal - virtualPayment);
+                                            virtualPayment = 0;
+                                            virtualRefund = refundTotal;
+                                        }
                                     }
+                                    log.info("[PAY_SRC_VIRTUAL]refundAct({}), paymentAct({}), virtualRefund({}), virtualPayment({})", refundAct, paymentAct, virtualRefund, virtualPayment);
                                 }
-                                log.info("[PAY_SRC_VIRTUAL]refundAct({}), paymentAct({}), virtualRefund({}), virtualPayment({})", refundAct, paymentAct, virtualRefund, virtualPayment);
                             }
                         } else if (chargeOrder.getPayType() == ConstantConfig.PAY_BY_ALIPAY || chargeOrder.getPayType() == ConstantConfig.PAY_BY_WEIPAY) {
                             refundAct = paymentAct - actPayment;
@@ -659,6 +696,7 @@ public class RequestHandler {
                         chargeOrderMapper.refundUpdate(chargeOrder);
                         log.info("[ReportStopChargeRequest][{}]order({}) refund update, refundAct({}), actPayment({})",
                                 deviceNumber, chargeOrder.getOrderNumber(), refundAct, actPayment);
+
 
                         // 退款流水
                         int curValue = chargeCert.getCurValue() + virtualRefund;

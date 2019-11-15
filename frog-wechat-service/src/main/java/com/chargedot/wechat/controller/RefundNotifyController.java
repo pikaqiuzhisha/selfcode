@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.text.SimpleDateFormat;
+import java.util.Objects;
 
 @RestController
 @Slf4j
@@ -38,29 +39,35 @@ public class RefundNotifyController {
     @Transactional
     @RequestMapping(value = "/wx_notify", method = RequestMethod.POST, produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
     public String parseRefundNotifyResult(@RequestBody String xmlData) throws WxPayException {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
         try {
             log.info("微信支付退款异步通知参数：{}", xmlData);
             WxPayRefundNotifyResult result = WxPayRefundNotifyResult.fromXML(xmlData, payService.getConfig().getMchKey());
             log.info("微信支付退款异步通知解析后的对象：{}", JSONUtils.toJSONString(result));
-            //判断是否是重复通知
-            //查找最近一条订单信息
-            ChargeOrder chargeOrder = chargeOrderService.findByOrderNumber(result.getReqInfo().getOutTradeNo());
 
-            //是否是重复退款通知
-            if (ConstantConfig.REFUND == chargeOrder.getPayStatus()) {
-                return WxPayNotifyResponse.success("成功");
+            // 查找最近一条订单信息
+            ChargeOrder chargeOrder = chargeOrderService.findByOrderNumber(result.getReqInfo().getOutTradeNo());
+            // 校验
+            if (Objects.isNull(chargeOrder)) {
+                return WxPayNotifyResponse.fail("该订单不存在");
             }
-            //更新数据库退款状态
-            //更新订单表数据库退款状态
+            // 是否是重复退款通知
+            if (ConstantConfig.REFUND == chargeOrder.getPayStatus()) {
+                return WxPayNotifyResponse.success("该订单已退款,无需再退款");
+            }
+
+            // 更新退款记录表的退款状态
+            RefundRecord refundRecord = refundRecordService.getRefundRecordByRefundNumber(result.getReqInfo().getOutRefundNo());
+            // 校验
+            if (Objects.isNull(refundRecord)) {
+                return WxPayNotifyResponse.fail("该退款单不存在");
+            }
+            refundRecord.setRefundStatus(ConstantConfig.REFUND);
+            refundRecord.setRefundAt(sdf.format(result.getReqInfo().getSuccessTime()));
+            refundRecordService.updateRefundRecord(refundRecord);
+            // 更改订单表订单状态
             chargeOrder.setPayStatus(ConstantConfig.REFUND);
             chargeOrderService.updateChargeOrder(chargeOrder);
-            //更新插入退款记录表
-            RefundRecord refundRecord = refundRecordService.getRefundRecordByOrderId(result.getReqInfo().getOutTradeNo());
-            refundRecord.setRefundStatus(ConstantConfig.REFUND);
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
-            refundRecord.setRefundAt(sdf.format(result.getReqInfo().getSuccessTime()));
-            refundRecord.setRefundMoney(result.getReqInfo().getSettlementRefundFee());
-            refundRecordService.updateRefundRecord(refundRecord);
             return WxPayNotifyResponse.success("成功");
         } catch (Exception e) {
             log.error(e.getMessage(), e);

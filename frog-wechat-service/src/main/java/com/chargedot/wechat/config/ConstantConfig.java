@@ -101,7 +101,7 @@ public class ConstantConfig {
     public final static int ORDER_TYPE_ADJUST = 3;
 
     /**
-     * 支付状态 1为待支付,2为支付成功,3为支付失败,4已退款,5已开票,6待退款
+     * 支付状态 1为待支付,2为支付成功,3为支付失败,4已退款,5已开票,6待退款，8退款中
      */
     public static final int UNPAID = 1;
     public static final int PAID = 2;
@@ -109,7 +109,7 @@ public class ConstantConfig {
     public static final int REFUND = 4;
     public static final int INVOICED = 5;
     public static final int UNREFUND = 6;
-    public static final int REFUNDING = 7;
+    public static final int REFUNDING = 8;
 
 
     /**
@@ -142,7 +142,7 @@ public class ConstantConfig {
     public final static int CARD_UNAVAILABLE = 3;
 
     /**
-     *  卡片封禁状态（1已激活2封禁）
+     * 卡片封禁状态（1已激活2封禁）
      */
     public final static int CARD_UNFORBIDDEN = 1;
     public final static int CARD_FORBIDDEN = 2;

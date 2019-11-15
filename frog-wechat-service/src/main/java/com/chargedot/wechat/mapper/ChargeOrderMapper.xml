@@ -4,6 +4,38 @@
 <mapper namespace="com.chargedot.wechat.mapper.ChargeOrderMapper">
 
     <!--根据订单编号找到最近一条订单信息-->
+    <select id="findByOrderID" resultType="ChargeOrder">
+        SELECT
+          id AS id,
+          order_number AS orderNumber,
+          cert_id AS certId,
+          user_id AS userId,
+          start_detail AS startDetail,
+          port_id AS portId,
+          device_id AS deviceId,
+          station_id AS stationId,
+          sequence_number AS sequenceNumber,
+          start_type AS startType,
+          started_at AS startedAt,
+          finished_at AS finishedAt,
+          duration AS duration,
+          duration_plan AS durationPlan,
+          payment AS payment,
+          payment_act AS paymentAct,
+          refund_act AS refundAct,
+          payment_virtual AS virtualPayment,
+          refund_virtual AS virtualRefund,
+          pay_src AS paySrc,
+          order_type AS orderType,
+          pay_status AS payStatus,
+          order_status AS orderStatus,
+          charge_finish_reason AS chargeFinishReason,
+          fee_detail_snap AS feeDetailSnap,
+          pay_type AS payType
+        FROM dw_charge_order WHERE id=#{orderId} AND is_del=0 LIMIT 1
+    </select>
+
+    <!--根据订单号找到最近一条订单信息-->
     <select id="findByOrderNumber" resultType="ChargeOrder">
         SELECT
           id AS id,

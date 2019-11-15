@@ -31,5 +31,11 @@ public interface RefundRecordMapper {
     void updateRefundRecord(RefundRecord refundRecord);
 
 
-    RefundRecord getRefundRecordByOrderId(@Param("outTradeNo") String outTradeNo);
+    /**
+     * 根据退款单号得到退款单信息
+     *
+     * @param refundNumber 退款单号
+     * @return 返回退款单号信息
+     */
+    RefundRecord getRefundRecordByRefundNumber(@Param("refundNumber") String refundNumber);
 }

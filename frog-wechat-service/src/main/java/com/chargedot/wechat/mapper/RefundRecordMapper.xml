@@ -47,7 +47,7 @@
         WHERE refund_number=#{refundNumber} AND is_del=0
     </update>
 
-    <select id="getRefundRecordByOrderId" resultType="RefundRecord">
+    <select id="getRefundRecordByRefundNumber" resultType="RefundRecord">
         SELECT
             drr.id AS id,
             drr.refund_number AS refundNumber,
@@ -65,6 +65,6 @@
         LEFT JOIN dw_charge_order AS dco ON drr.order_id=dco.id
         LEFT JOIN dw_user AS du ON drr.user_id=du.id
         WHERE drr.is_del=0
-        AND drr.order_id = #{outTradeNo}
+        AND drr.refund_number = #{refundNumber}
     </select>
 </mapper>

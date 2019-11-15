@@ -13,6 +13,11 @@ public class ChargeOrderServiceImpl implements ChargeOrderService {
     private ChargeOrderMapper chargeOrderMapper;
 
     @Override
+    public ChargeOrder findByOrderID(Integer orderId) {
+        return chargeOrderMapper.findByOrderID(orderId);
+    }
+
+    @Override
     public ChargeOrder findByOrderNumber(String orderNumber) {
         return chargeOrderMapper.findByOrderNumber(orderNumber);
     }

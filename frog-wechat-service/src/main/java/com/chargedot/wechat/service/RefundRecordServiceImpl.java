@@ -33,7 +33,8 @@ public class RefundRecordServiceImpl implements RefundRecordService {
     }
 
     @Override
-    public RefundRecord getRefundRecordByOrderId(String outTradeNo) {
-        return refundRecordMapper.getRefundRecordByOrderId(outTradeNo);
+    public RefundRecord getRefundRecordByRefundNumber(String refundNumber) {
+        return refundRecordMapper.getRefundRecordByRefundNumber(refundNumber);
     }
+
 }

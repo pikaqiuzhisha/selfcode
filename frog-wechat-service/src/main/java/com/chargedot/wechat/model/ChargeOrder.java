@@ -18,7 +18,7 @@ public class ChargeOrder {
 
     private Long certId;
 
-    private  Integer portId;
+    private Integer portId;
 
     private Integer deviceId;
 
@@ -180,7 +180,6 @@ public class ChargeOrder {
     }
 
     /**
-     *
      * @return
      */
     public boolean isOnGoing() {

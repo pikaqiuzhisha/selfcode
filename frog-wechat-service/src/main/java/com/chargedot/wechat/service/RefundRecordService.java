@@ -1,7 +1,6 @@
 package com.chargedot.wechat.service;
 
 import com.chargedot.wechat.model.RefundRecord;
-import org.springframework.stereotype.Service;
 
 import java.util.List;
 
@@ -29,9 +28,10 @@ public interface RefundRecordService {
     void updateRefundRecord(RefundRecord refundRecord);
 
     /**
-     * 通过订单ID查询退款记录
-     * @param outTradeNo
-     * @return
+     * 根据退款单号得到退款单信息
+     *
+     * @param refundNumber 退款单号
+     * @return 返回退款单号信息
      */
-    RefundRecord getRefundRecordByOrderId(String outTradeNo);
+    RefundRecord getRefundRecordByRefundNumber(String refundNumber);
 }
